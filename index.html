@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Net-DigiLearn — Gim Edukasi Teknologi Jaringan Komputer (TI_PPLG_3)</title>
+  <style>
+    /* =========================================================
+       NET-DIGILEARN (TI_PPLG_3 — Teknologi Jaringan Komputer)
+       Layar memakai gambar rancangan asli dari storyboard PDF;
+       tombol, panel, dan arena gim diletakkan di atas gambar.
+       ========================================================= */
+    :root {
+      --u: 13px;
+      --navy: #06243f;
+      --biru: #064f88;
+      --sian: #3ad7ff;
+      --hijau: #00d977;
+      --kuning: #ffd23c;
+      --merah: #e03a32;
+      --oranye: #f0932b;
+      --ungu: #8e44ad;
+      --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    html, body { height: 100% }
+
+    body {
+      background: #02090f;
+      font-family: var(--font);
+      overflow: hidden;
+      color: #fff;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    #panggung {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(100vw, 177.78vh);
+      height: min(56.25vw, 100vh);
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 0 60px rgba(0, 0, 0, .85)
+    }
+
+    .adegan {
+      position: absolute;
+      inset: 0;
+      display: none;
+      background-size: 100% 100%;
+      background-position: center
+    }
+
+    .adegan.aktif { display: block; animation: masuk .45s ease }
+
+    .adegan.gelap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 10, 20, .62);
+      pointer-events: none
+    }
+    .adegan.geser.aktif { animation: geser .45s cubic-bezier(.22, .9, .3, 1) }
+    @keyframes masuk { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes geser { from { opacity: 0; transform: translateX(6%) } to { opacity: 1; transform: none } }
+    @keyframes tirai { from { clip-path: inset(0 50% 0 50%) } to { clip-path: inset(0 0 0 0) } }
+    .adegan.tirai.aktif { animation: tirai .5s ease }
+
+    /* ---------- HOTSPOT DI ATAS GAMBAR ---------- */
+    .hot {
+      position: absolute;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      border-radius: calc(var(--u)*.8);
+      transition: transform .16s, box-shadow .16s, background .16s
+    }
+
+    .hot:hover {
+      transform: scale(1.05);
+      background: rgba(58, 215, 255, .15);
+      box-shadow: 0 0 0 calc(var(--u)*.14) rgba(58, 215, 255, .95), 0 0 calc(var(--u)*1.8) rgba(58, 215, 255, .65)
+    }
+
+    .hot:active { transform: scale(.98) }
+    .hot.bulat { border-radius: 50% }
+    .hot.denyut { animation: denyut 2.5s ease-in-out infinite }
+    .hot:hover.denyut { animation: none }
+
+    @keyframes denyut {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(58, 215, 255, 0) }
+      50% { box-shadow: 0 0 0 calc(var(--u)*.17) rgba(58, 215, 255, .55) }
+    }
+
+    .tip {
+      position: absolute;
+      left: 50%;
+      bottom: 104%;
+      transform: translateX(-50%) translateY(.4em);
+      background: #041a2e;
+      color: #eaf6ff;
+      border: 1px solid var(--sian);
+      border-radius: .5em;
+      padding: .3em .7em;
+      font-size: calc(var(--u)*.95);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: .18s;
+      z-index: 9
+    }
+
+    .hot:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0) }
+
+    /* ---------- TOMBOL UMUM ---------- */
+    .btn {
+      font-family: var(--font);
+      border: none;
+      cursor: pointer;
+      border-radius: calc(var(--u)*.75);
+      padding: calc(var(--u)*.62) calc(var(--u)*1.3);
+      font-size: calc(var(--u)*1.15);
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(180deg, #1479c9, #064f88);
+      box-shadow: 0 calc(var(--u)*.25) 0 rgba(0, 0, 0, .38);
+      transition: transform .14s, filter .14s
+    }
+
+    .btn:hover { transform: translateY(-2px) scale(1.04); filter: brightness(1.12) }
+    .btn:active { transform: translateY(1px) }
+    .btn.hijau { background: linear-gradient(180deg, #16e08a, #0a9d5e); color: #01311d }
+    .btn.merah { background: linear-gradient(180deg, #ff6a5e, #c62a22) }
+    .btn.kuning { background: linear-gradient(180deg, #ffe063, #e0a800); color: #3a2a00 }
+    .btn.abu { background: linear-gradient(180deg, #7a8ca0, #4a5b6d) }
+    .btn.ungu { background: linear-gradient(180deg, #b06ed6, #6d3391) }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; filter: grayscale(.6) }
+
+    /* ---------- BILAH ATAS / BAWAH ---------- */
+    .bar {
+      position: absolute;
+      left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.8);
+      padding: calc(var(--u)*.7) calc(var(--u)*1.4);
+      background: linear-gradient(180deg, rgba(2, 16, 30, .93), rgba(2, 16, 30, .6));
+      z-index: 6
+    }
+
+    .bar.bawah {
+      bottom: 0;
+      background: linear-gradient(0deg, rgba(2, 16, 30, .95), rgba(2, 16, 30, .55))
+    }
+
+    .bar.atas { top: 0 }
+    .bar .judul { font-size: calc(var(--u)*1.5); font-weight: 800; letter-spacing: .5px }
+    .bar .sub { font-size: calc(var(--u)*1); opacity: .8 }
+    .spacer { flex: 1 }
+
+    .chip {
+      background: rgba(58, 215, 255, .16);
+      border: 1px solid rgba(58, 215, 255, .55);
+      border-radius: 99px;
+      padding: calc(var(--u)*.3) calc(var(--u)*.85);
+      font-size: calc(var(--u)*1);
+      font-weight: 700
+    }
+
+    /* ---------- PENGATURAN & POPUP ---------- */
+    .gearbtn {
+      position: absolute;
+      right: 1.4%;
+      top: 2%;
+      width: 5.6%;
+      height: 10%;
+      border-radius: 50%;
+      background: rgba(4, 26, 46, .78);
+      border: 2px solid rgba(255, 255, 255, .55);
+      color: #fff;
+      font-size: calc(var(--u)*1.7);
+      cursor: pointer;
+      z-index: 20;
+      transition: transform .2s
+    }
+
+    .gearbtn:hover { transform: rotate(45deg) scale(1.08) }
+
+    .selubung {
+      position: absolute;
+      inset: 0;
+      background: rgba(1, 10, 20, .82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      backdrop-filter: blur(3px)
+    }
+
+    .selubung.aktif { display: flex; animation: masuk .25s ease }
+
+    .kartu {
+      background: linear-gradient(160deg, #0a2b4a, #04182c);
+      border: 2px solid var(--sian);
+      border-radius: calc(var(--u)*1.2);
+      padding: calc(var(--u)*1.8) calc(var(--u)*2.2);
+      width: 62%;
+      max-height: 88%;
+      overflow: auto;
+      box-shadow: 0 calc(var(--u)*1.5) calc(var(--u)*4) rgba(0, 0, 0, .6)
+    }
+
+    .kartu h3 { font-size: calc(var(--u)*1.9); margin-bottom: calc(var(--u)*.8); color: var(--sian) }
+    .kartu p { font-size: calc(var(--u)*1.15); line-height: 1.6; margin-bottom: calc(var(--u)*.7) }
+    .kartu .aksi { display: flex; gap: calc(var(--u)*.8); justify-content: flex-end; margin-top: calc(var(--u)*1.2) }
+
+    .baris-set {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.9);
+      margin: calc(var(--u)*.7) 0;
+      font-size: calc(var(--u)*1.15)
+    }
+
+    .baris-set label { width: 34%; font-weight: 700 }
+    .baris-set input[type=range] { flex: 1; accent-color: var(--sian) }
+    .baris-set input[type=checkbox] { width: calc(var(--u)*1.4); height: calc(var(--u)*1.4); accent-color: var(--hijau) }
+
+    /* ---------- SUBTITLE / CALLOUT MENTOR ---------- */
+    .callout {
+      position: absolute;
+      left: 3%;
+      right: 3%;
+      bottom: 2.5%;
+      display: flex;
+      align-items: flex-end;
+      gap: calc(var(--u)*1);
+      z-index: 5;
+      pointer-events: none
+    }
+
+    .callout img {
+      width: calc(var(--u)*8);
+      height: calc(var(--u)*8);
+      border-radius: 50%;
+      border: 3px solid var(--sian);
+      box-shadow: 0 0 calc(var(--u)*1.5) rgba(58, 215, 255, .7);
+      animation: napas 3.4s ease-in-out infinite;
+      flex: none
+    }
+
+    @keyframes napas { 0%, 100% { transform: translateY(0) scale(1) } 50% { transform: translateY(-2%) scale(1.02) } }
+
+    .callout.tinggi { bottom: 11% }
+
+    .callout .balon {
+      background: rgba(3, 20, 36, .9);
+      border: 2px solid rgba(58, 215, 255, .7);
+      border-radius: calc(var(--u)*1);
+      padding: calc(var(--u)*.75) calc(var(--u)*1.1);
+      font-size: calc(var(--u)*1.1);
+      line-height: 1.5;
+      max-width: 74%
+    }
+
+    .callout .balon b { color: var(--kuning) }
+
+    /* ---------- PENAMPIL MATERI (zoom & geser) ---------- */
+    .viewer { position: absolute; inset: 0; overflow: hidden; background: #04121f; cursor: grab }
+    .viewer.tarik { cursor: grabbing }
+    .viewer img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; user-select: none; -webkit-user-drag: none }
+
+    .zoombar {
+      position: absolute;
+      right: calc(var(--u)*1.2);
+      top: calc(var(--u)*1.2);
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--u)*.45);
+      z-index: 8
+    }
+
+    .zoombar button {
+      width: calc(var(--u)*3.2);
+      height: calc(var(--u)*3.2);
+      border-radius: calc(var(--u)*.6);
+      border: 2px solid rgba(255, 255, 255, .45);
+      background: rgba(4, 26, 46, .85);
+      color: #fff;
+      font-size: calc(var(--u)*1.5);
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .zoombar button:hover { background: var(--biru); border-color: var(--sian) }
+
+    /* ---------- ARENA GIM ---------- */
+    .panel {
+      position: absolute;
+      background: rgba(3, 21, 38, .9);
+      border: 2px solid rgba(58, 215, 255, .45);
+      border-radius: calc(var(--u)*1);
+      padding: calc(var(--u)*1.1);
+      backdrop-filter: blur(2px)
+    }
+
+    .grid-gim {
+      position: absolute;
+      left: 5%;
+      right: 5%;
+      top: 20%;
+      bottom: 17%;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: start;
+      gap: calc(var(--u)*1.1)
+    }
+
+    .kartu-gim {
+      background: linear-gradient(165deg, rgba(10, 45, 78, .95), rgba(3, 20, 38, .95));
+      border: 2px solid rgba(58, 215, 255, .5);
+      border-radius: calc(var(--u)*1);
+      padding: calc(var(--u)*1);
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--u)*.45);
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s, border-color .18s;
+      text-align: left
+    }
+
+    .kartu-gim:hover {
+      transform: translateY(-4%) scale(1.03);
+      border-color: var(--sian);
+      box-shadow: 0 calc(var(--u)*.8) calc(var(--u)*2) rgba(58, 215, 255, .35)
+    }
+
+    .kartu-gim .ik { font-size: calc(var(--u)*3) }
+    .kartu-gim h4 { font-size: calc(var(--u)*1.25); line-height: 1.25 }
+    .kartu-gim p { font-size: calc(var(--u)*.95); opacity: .82; line-height: 1.4 }
+    .kartu-gim .status { margin-top: calc(var(--u)*.5); font-size: calc(var(--u)*.95); font-weight: 800; color: var(--kuning) }
+    .kartu-gim .status.lulus { color: var(--hijau) }
+
+    /* ---------- CHIP WARNA KABEL ---------- */
+    .kabel-area { position: absolute; inset: 0 }
+
+    .pin-baris {
+      display: flex;
+      gap: calc(var(--u)*.5);
+      justify-content: center;
+      align-items: flex-end
+    }
+
+    .pin {
+      width: calc(var(--u)*4.4);
+      height: calc(var(--u)*7);
+      border-radius: calc(var(--u)*.35);
+      border: 2px dashed rgba(255, 255, 255, .45);
+      background: rgba(255, 255, 255, .07);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      position: relative;
+      transition: border-color .15s, background .15s
+    }
+
+    .pin .no {
+      position: absolute;
+      top: calc(var(--u)*-1.7);
+      font-size: calc(var(--u)*1.05);
+      font-weight: 800;
+      color: var(--sian)
+    }
+
+    .pin.over { border-color: var(--sian); background: rgba(58, 215, 255, .2) }
+    .pin.benar { border-color: var(--hijau); border-style: solid; box-shadow: 0 0 calc(var(--u)*.9) rgba(0, 217, 119, .8) }
+    .pin.salah { border-color: var(--merah); border-style: solid; box-shadow: 0 0 calc(var(--u)*.9) rgba(224, 58, 50, .8) }
+
+    .warna {
+      width: calc(var(--u)*4.2);
+      height: calc(var(--u)*6.6);
+      border-radius: calc(var(--u)*.3);
+      border: 1px solid rgba(0, 0, 0, .5);
+      cursor: grab;
+      position: relative;
+      box-shadow: inset 0 0 calc(var(--u)*.4) rgba(0, 0, 0, .35);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      overflow: hidden
+    }
+
+    .warna span {
+      font-size: calc(var(--u)*.72);
+      font-weight: 800;
+      color: #06121f;
+      background: rgba(255, 255, 255, .82);
+      width: 100%;
+      text-align: center;
+      line-height: 1.25;
+      padding: 1px 0
+    }
+
+    .warna.terpilih { outline: 3px solid var(--kuning); outline-offset: 2px; transform: scale(1.06) }
+    .warna.hilang { visibility: hidden }
+
+    .palet {
+      display: flex;
+      flex-wrap: wrap;
+      gap: calc(var(--u)*.5);
+      justify-content: center
+    }
+
+    /* ---------- DRAG & DROP KATEGORI ---------- */
+    .bin {
+      border: 2px dashed rgba(255, 255, 255, .4);
+      border-radius: calc(var(--u)*.8);
+      background: rgba(3, 21, 38, .78);
+      padding: calc(var(--u)*.6);
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--u)*.4);
+      min-height: 0;
+      overflow: auto
+    }
+
+    .bin.over { border-color: var(--sian); background: rgba(58, 215, 255, .18) }
+    .bin h5 { font-size: calc(var(--u)*1.15); text-align: center; letter-spacing: .5px }
+    .bin .isi { display: flex; flex-wrap: wrap; gap: calc(var(--u)*.35); justify-content: center }
+
+    .item {
+      background: linear-gradient(180deg, #12507f, #072944);
+      border: 1px solid rgba(58, 215, 255, .5);
+      border-radius: calc(var(--u)*.55);
+      padding: calc(var(--u)*.35) calc(var(--u)*.7);
+      font-size: calc(var(--u)*.98);
+      font-weight: 700;
+      cursor: grab;
+      white-space: nowrap
+    }
+
+    .item.terpilih { outline: 3px solid var(--kuning); outline-offset: 2px }
+    .item.benar { background: linear-gradient(180deg, #12b271, #067044); border-color: var(--hijau) }
+    .item.salah { background: linear-gradient(180deg, #c0392b, #7c1d13); border-color: var(--merah) }
+
+    /* ---------- KALKULATOR IP ---------- */
+    .oktet { display: flex; align-items: center; gap: calc(var(--u)*.4) }
+
+    .oktet input {
+      width: calc(var(--u)*5.2);
+      padding: calc(var(--u)*.4);
+      font-size: calc(var(--u)*1.5);
+      font-weight: 800;
+      text-align: center;
+      border-radius: calc(var(--u)*.45);
+      border: 2px solid rgba(58, 215, 255, .6);
+      background: #041d33;
+      color: #fff;
+      font-family: var(--font)
+    }
+
+    .oktet .titik { font-size: calc(var(--u)*1.6); font-weight: 900 }
+
+    .bitrow { display: flex; gap: calc(var(--u)*.25); font-family: ui-monospace, Menlo, Consolas, monospace }
+
+    .bitgrp {
+      display: flex;
+      gap: 1px;
+      padding: calc(var(--u)*.2);
+      border-radius: calc(var(--u)*.3)
+    }
+
+    .bitgrp.net { background: rgba(58, 160, 255, .35); border: 1px solid #4aa8ff }
+    .bitgrp.host { background: rgba(255, 210, 60, .3); border: 1px solid var(--kuning) }
+    .bit { font-size: calc(var(--u)*.85); font-weight: 700; width: calc(var(--u)*.75); text-align: center }
+
+    /* ---------- TCP/IP LAYER ---------- */
+    .stack { display: flex; flex-direction: column; gap: calc(var(--u)*.5) }
+
+    .layer {
+      border-radius: calc(var(--u)*.6);
+      padding: calc(var(--u)*.55) calc(var(--u)*.9);
+      font-weight: 800;
+      font-size: calc(var(--u)*1.15);
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.6);
+      border: 2px solid rgba(255, 255, 255, .28)
+    }
+
+    .layer.l1 { background: linear-gradient(90deg, #f0932b, #c76a06) }
+    .layer.l2 { background: linear-gradient(90deg, #2b83f0, #0b4f9e) }
+    .layer.l3 { background: linear-gradient(90deg, #2fbd6a, #10763f) }
+    .layer.l4 { background: linear-gradient(90deg, #8c98a4, #59636d) }
+    .layer .ket { margin-left: auto; font-size: calc(var(--u)*.92); font-weight: 600; opacity: .92 }
+    .layer.nyala { box-shadow: 0 0 calc(var(--u)*1.6) rgba(255, 255, 255, .85); border-color: #fff; transform: scale(1.03) }
+    .layer { transition: transform .25s, box-shadow .25s }
+
+    .paket {
+      position: absolute;
+      background: #fff;
+      color: #05203a;
+      font-weight: 900;
+      font-size: calc(var(--u)*1);
+      padding: calc(var(--u)*.3) calc(var(--u)*.7);
+      border-radius: calc(var(--u)*.4);
+      box-shadow: 0 0 calc(var(--u)*1.2) rgba(255, 255, 255, .9);
+      transition: top .55s cubic-bezier(.4, .1, .3, 1), left .55s ease;
+      z-index: 7
+    }
+
+    /* ---------- TERMINAL / PING ---------- */
+    .term {
+      background: #030d16;
+      border: 2px solid #1f4e78;
+      border-radius: calc(var(--u)*.6);
+      padding: calc(var(--u)*.7);
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: calc(var(--u)*.95);
+      line-height: 1.5;
+      color: #b8f5c8;
+      overflow: auto;
+      white-space: pre-wrap
+    }
+
+    .term .err { color: #ff8a80 }
+    .term .ok { color: #7dffa8 }
+
+    .node {
+      position: absolute;
+      width: calc(var(--u)*11);
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(var(--u)*.2);
+      cursor: pointer;
+      transition: transform .16s
+    }
+
+    .node:hover { transform: translateX(-50%) scale(1.07) }
+    .node .kotak {
+      width: calc(var(--u)*7);
+      height: calc(var(--u)*5);
+      border-radius: calc(var(--u)*.6);
+      background: linear-gradient(165deg, #123f66, #061d33);
+      border: 2px solid rgba(58, 215, 255, .6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: calc(var(--u)*2.2)
+    }
+
+    .node.rusak .kotak { border-color: var(--merah); box-shadow: 0 0 calc(var(--u)*1.2) rgba(224, 58, 50, .85) }
+    .node.beres .kotak { border-color: var(--hijau); box-shadow: 0 0 calc(var(--u)*1.2) rgba(0, 217, 119, .8) }
+    .node .lbl { font-size: calc(var(--u)*.9); font-weight: 700; text-align: center }
+    .node .ip { font-size: calc(var(--u)*.82); opacity: .82; font-family: ui-monospace, monospace }
+
+    .link { position: absolute; height: calc(var(--u)*.45); background: #2f9e6a; border-radius: 99px; z-index: 1 }
+    .link.putus { background: repeating-linear-gradient(90deg, #e03a32 0 8px, transparent 8px 16px) }
+    .link.salah { background: repeating-linear-gradient(90deg, #f0932b 0 8px, #7a4a0c 8px 16px) }
+
+    /* ---------- KUIS ---------- */
+    .dots { display: flex; gap: calc(var(--u)*.4); flex-wrap: wrap }
+
+    .dot {
+      width: calc(var(--u)*2.5);
+      height: calc(var(--u)*2.5);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, .45);
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
+      font-weight: 800;
+      font-size: calc(var(--u)*1.05);
+      cursor: pointer;
+      transition: transform .14s
+    }
+
+    .dot:hover { transform: scale(1.12) }
+    .dot.aktif { background: #1479c9; border-color: #6fc6ff }
+    .dot.benar { background: #10a35f; border-color: #38e492 }
+    .dot.salah { background: #b8322a; border-color: #ff7a70 }
+
+    .opsi {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.8);
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, .07);
+      border: 2px solid rgba(255, 255, 255, .22);
+      border-radius: calc(var(--u)*.7);
+      padding: calc(var(--u)*.6) calc(var(--u)*.9);
+      font-size: calc(var(--u)*1.1);
+      color: #fff;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: .15s
+    }
+
+    .opsi:hover { background: rgba(58, 215, 255, .18); border-color: var(--sian) }
+    .opsi .huruf {
+      width: calc(var(--u)*2.2);
+      height: calc(var(--u)*2.2);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, .5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      flex: none
+    }
+
+    .opsi.benar { background: rgba(16, 163, 95, .35); border-color: var(--hijau) }
+    .opsi.salah { background: rgba(184, 50, 42, .35); border-color: var(--merah) }
+    .opsi:disabled { cursor: default }
+
+    /* ---------- SERTIFIKAT ---------- */
+    #kanvasSertifikat { width: 74%; border-radius: calc(var(--u)*.6); box-shadow: 0 calc(var(--u)*1) calc(var(--u)*3) rgba(0, 0, 0, .6) }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      top: 8%;
+      transform: translateX(-50%);
+      background: rgba(3, 24, 42, .95);
+      border: 2px solid var(--sian);
+      border-radius: calc(var(--u)*.7);
+      padding: calc(var(--u)*.7) calc(var(--u)*1.4);
+      font-size: calc(var(--u)*1.2);
+      font-weight: 700;
+      z-index: 60;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s
+    }
+
+    .toast.tampil { opacity: 1; transform: translateX(-50%) translateY(calc(var(--u)*.6)) }
+    .toast.baik { border-color: var(--hijau); color: #c7ffe4 }
+    .toast.buruk { border-color: var(--merah); color: #ffd3d0 }
+
+    .kecil { font-size: calc(var(--u)*.95); opacity: .82; line-height: 1.5 }
+    .tengah { text-align: center }
+    .mono { font-family: ui-monospace, Menlo, Consolas, monospace }
+  </style>
+</head>
+
+<body>
+  <div id="panggung">
+
+    <!-- ============ SCENE 01 — SPLASH / OPENING ============ -->
+    <section class="adegan" id="s0" style="background-image:url(assets/sc0_splash.jpg)">
+      <button class="hot denyut" style="left:37.2%;top:59.1%;width:27.5%;height:21%" data-aksi="mulai">
+        <span class="tip">Mulai belajar jaringan</span>
+      </button>
+    </section>
+
+    <!-- ============ SCENE 02 — BERANDA / MENU UTAMA ============ -->
+    <section class="adegan geser" id="s1" style="background-image:url(assets/sc1_beranda.jpg)">
+      <button class="hot denyut" style="left:19.8%;top:59.2%;width:18.7%;height:27.9%" data-aksi="s2">
+        <span class="tip">1. Eksplorasi Masalah (Pemantik)</span>
+      </button>
+      <button class="hot denyut" style="left:40.8%;top:59.2%;width:18.3%;height:27.9%" data-aksi="s3">
+        <span class="tip">2. Menu Materi Jaringan</span>
+      </button>
+      <button class="hot denyut" style="left:61.6%;top:59.2%;width:18.5%;height:27.9%" data-aksi="s4">
+        <span class="tip">3. Uji Kompetensi (10 soal)</span>
+      </button>
+      <div style="position:absolute;left:1.6%;top:2.5%;display:flex;gap:calc(var(--u)*.7);z-index:6">
+        <button class="btn kuning" data-aksi="s5">🕹️ Lab Simulasi Jaringan</button>
+        <button class="btn abu" data-aksi="alur">🗺️ Alur Navigasi</button>
+      </div>
+      <button class="gearbtn" data-aksi="set" title="Pengaturan">⚙</button>
+    </section>
+
+    <!-- ============ SCENE 03 — STUDI KASUS / PERTANYAAN PEMANTIK ============ -->
+    <section class="adegan geser" id="s2" style="background-image:url(assets/sc2_studikasus.jpg)">
+      <button class="hot bulat denyut" style="left:13.6%;top:39.5%;width:3.9%;height:6.6%" data-pemantik="0">
+        <span class="tip">Arahan analisis nomor 1</span>
+      </button>
+      <button class="hot bulat denyut" style="left:13.6%;top:56.4%;width:3.9%;height:6.6%" data-pemantik="1">
+        <span class="tip">Arahan analisis nomor 2</span>
+      </button>
+      <button class="hot bulat denyut" style="left:13.6%;top:73.8%;width:3.9%;height:6.6%" data-pemantik="2">
+        <span class="tip">Arahan analisis nomor 3</span>
+      </button>
+      <button class="hot denyut" style="left:90.2%;top:79.2%;width:7.8%;height:13.6%" data-aksi="s1">
+        <span class="tip">Kembali ke Beranda</span>
+      </button>
+    </section>
+
+    <!-- ============ SCENE 04 — HUB MENU MATERI ============ -->
+    <section class="adegan geser" id="s3" style="background-image:url(assets/sc3_hub.jpg)">
+      <button class="hot denyut" style="left:3.2%;top:23.7%;width:17.4%;height:52.5%" data-aksi="s3a">
+        <span class="tip">Sub-bab A · Sistem Operasi</span>
+      </button>
+      <button class="hot denyut" style="left:22.3%;top:23.7%;width:17.2%;height:52.5%" data-aksi="s3b">
+        <span class="tip">Sub-bab B · Perangkat Keras</span>
+      </button>
+      <button class="hot denyut" style="left:40.8%;top:23.7%;width:17.5%;height:52.5%" data-aksi="s3c">
+        <span class="tip">Sub-bab C · Instalasi &amp; Pengabelan</span>
+      </button>
+      <button class="hot denyut" style="left:59.8%;top:23.7%;width:17.5%;height:52.5%" data-aksi="s3d">
+        <span class="tip">Sub-bab D · Alamat IP</span>
+      </button>
+      <button class="hot denyut" style="left:79.3%;top:23.7%;width:17.3%;height:52.5%" data-aksi="s3e">
+        <span class="tip">Sub-bab E · Model TCP/IP</span>
+      </button>
+      <button class="hot denyut" style="left:90.4%;top:79.8%;width:7.6%;height:13.6%" data-aksi="s1">
+        <span class="tip">Kembali ke Beranda</span>
+      </button>
+      <div class="panel" id="panelProgresMateri"
+        style="left:2%;top:2.5%;width:26%;padding:calc(var(--u)*.8)"></div>
+    </section>
+
+    <!-- ============ SCENE 3.x — PENGANTAR SUB-BAB ============ -->
+    <section class="adegan tirai" id="s3a" style="background-image:url(assets/sc3a_intro.jpg)">
+      <button class="hot denyut" style="left:33.5%;top:58.6%;width:33.1%;height:8.6%" data-aksi="m_a">
+        <span class="tip">Buka Detail Materi A</span>
+      </button>
+      <button class="hot" style="left:3.8%;top:86.8%;width:16.6%;height:6.2%" data-aksi="s3">
+        <span class="tip">Kembali ke Hub</span>
+      </button>
+    </section>
+
+    <section class="adegan tirai" id="s3b" style="background-image:url(assets/sc3b_intro.jpg)">
+      <button class="hot denyut" style="left:28.2%;top:62.6%;width:42.3%;height:15%" data-aksi="m_b">
+        <span class="tip">Buka Detail Sub-bab B</span>
+      </button>
+      <button class="hot" style="left:4.4%;top:86.1%;width:16.4%;height:7.5%" data-aksi="s3">
+        <span class="tip">Kembali ke Hub</span>
+      </button>
+    </section>
+
+    <section class="adegan tirai" id="s3c" style="background-image:url(assets/sc3c_intro.jpg)">
+      <button class="hot denyut" style="left:31.2%;top:63.8%;width:37.6%;height:14.1%" data-aksi="m_c">
+        <span class="tip">Buka Detail Sub-bab C</span>
+      </button>
+      <button class="hot" style="left:3.1%;top:82.3%;width:19.6%;height:6.5%" data-aksi="s3">
+        <span class="tip">Kembali ke Hub</span>
+      </button>
+    </section>
+
+    <section class="adegan tirai" id="s3d" style="background-image:url(assets/sc3d_intro.jpg)">
+      <button class="hot denyut" style="left:36.8%;top:59.9%;width:26.3%;height:9.4%" data-aksi="m_d">
+        <span class="tip">Buka Detail D</span>
+      </button>
+      <button class="hot" style="left:6%;top:82.3%;width:21%;height:6.9%" data-aksi="s3">
+        <span class="tip">Kembali ke Hub</span>
+      </button>
+    </section>
+
+    <section class="adegan tirai" id="s3e" style="background-image:url(assets/sc3e_intro.jpg)">
+      <button class="hot denyut" style="left:36.4%;top:64%;width:27.7%;height:9%" data-aksi="m_e">
+        <span class="tip">Buka Detail E</span>
+      </button>
+      <button class="hot" style="left:1.8%;top:89.6%;width:17.3%;height:6.4%" data-aksi="s3">
+        <span class="tip">Kembali ke Hub</span>
+      </button>
+    </section>
+
+    <!-- ============ SCENE 3.x.1 — PENAMPIL MATERI (zoom & geser) ============ -->
+    <section class="adegan" id="sMateri">
+      <div class="viewer" id="viewer"><img id="viewerImg" alt="Materi"></div>
+      <div class="zoombar">
+        <button data-zoom="in" title="Perbesar">+</button>
+        <button data-zoom="out" title="Perkecil">−</button>
+        <button data-zoom="reset" title="Pas layar" style="font-size:calc(var(--u)*1.1)">⤢</button>
+      </div>
+      <div class="bar bawah" id="barMateri">
+        <button class="btn merah" data-aksi="s3">◀ Kembali ke Hub</button>
+        <div style="display:flex;flex-direction:column">
+          <b id="judulMateri" style="font-size:calc(var(--u)*1.25)"></b>
+          <span class="kecil" id="tipMateri">Seret gambar untuk menggeser · gulir tetikus / tombol + − untuk memperbesar</span>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn kuning" id="btnRingkas">📋 Ringkasan Kunci</button>
+        <button class="btn hijau" id="btnLanjutMateri"></button>
+      </div>
+    </section>
+
+    <!-- ============ SCENE 05 — LAB SIMULASI (ARENA GIM) ============ -->
+    <section class="adegan geser gelap" id="s5" style="background-image:url(assets/bg_arena.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">🕹️ LAB SIMULASI JARINGAN</span>
+          <span class="sub">Lima tantangan praktik: crimping, perakitan, pengalamatan, protokol, dan troubleshooting</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="chipTotalBintang">⭐ 0 / 15</span>
+        <button class="btn abu" data-aksi="s1">🏠 Beranda</button>
+      </div>
+      <div class="grid-gim" id="gridGim"></div>
+      <div class="bar bawah">
+        <span class="kecil">Setiap tantangan bernilai maksimal ⭐⭐⭐. Skor tersimpan otomatis di peramban.</span>
+        <div class="spacer"></div>
+        <button class="btn ungu" data-aksi="s4">📝 Lanjut ke Uji Kompetensi</button>
+      </div>
+    </section>
+
+    <!-- ============ GIM 1 — CRIMPING KABEL UTP ============ -->
+    <section class="adegan gelap" id="g1" style="background-image:url(assets/bg_kabel.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">🔌 SIMULATOR CRIMPING KABEL UTP</span>
+          <span class="sub" id="g1Tugas"></span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="g1Ronde">Tugas 1 / 3</span>
+        <span class="chip" id="g1Skor">Skor 0</span>
+        <button class="btn abu" data-aksi="s5">◀ Arena</button>
+      </div>
+
+      <div class="panel" style="left:3%;top:16%;width:32%;bottom:16%">
+        <h4 style="font-size:calc(var(--u)*1.3);color:var(--sian)">📋 Kartu Perintah Kerja</h4>
+        <p class="kecil" id="g1Brief" style="margin-top:calc(var(--u)*.6)"></p>
+        <hr style="margin:calc(var(--u)*.8) 0;border-color:rgba(255,255,255,.2)">
+        <h4 style="font-size:calc(var(--u)*1.15);color:var(--kuning)">Standar TIA/EIA-568B</h4>
+        <p class="kecil">Pin 1→8: Putih Oranye, Oranye, Putih Hijau, Biru, Putih Biru, Hijau, Putih Cokelat, Cokelat.</p>
+        <h4 style="font-size:calc(var(--u)*1.15);color:var(--kuning);margin-top:calc(var(--u)*.6)">Standar TIA/EIA-568A</h4>
+        <p class="kecil">Pin 1→8: Putih Hijau, Hijau, Putih Oranye, Biru, Putih Biru, Oranye, Putih Cokelat, Cokelat.</p>
+        <p class="kecil" style="margin-top:calc(var(--u)*.6);color:#ffd9a1">
+          <b>Straight-through</b> → dua perangkat <i>berbeda</i> jenis (PC↔Switch, Router↔Switch): kedua ujung 568B.<br>
+          <b>Crossover</b> → dua perangkat <i>sejenis</i> (PC↔PC, Switch↔Switch): ujung A 568A, ujung B 568B.
+        </p>
+      </div>
+
+      <div class="panel" style="left:37%;right:3%;top:16%;bottom:16%;display:flex;flex-direction:column;gap:calc(var(--u)*.8)">
+        <div class="tengah" style="font-size:calc(var(--u)*1.2);font-weight:800" id="g1LabelUjung"></div>
+        <div class="pin-baris" id="g1Pins" style="margin-top:calc(var(--u)*1.4)"></div>
+        <div class="kecil tengah">Konektor RJ-45 — susun 8 helai kabel dari pin 1 (kiri) sampai pin 8 (kanan)</div>
+        <hr style="border-color:rgba(255,255,255,.18)">
+        <div class="kecil tengah">Seret warna ke pin, atau ketuk warna lalu ketuk pinnya.</div>
+        <div class="palet" id="g1Palet"></div>
+        <div class="spacer"></div>
+        <div style="display:flex;gap:calc(var(--u)*.7);justify-content:center">
+          <button class="btn abu" id="g1Reset">↺ Ulangi</button>
+          <button class="btn kuning" id="g1Bantu">💡 Petunjuk</button>
+          <button class="btn hijau" id="g1Periksa">✔ Periksa Kabel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GIM 2 — SIKLUS PENGOLAHAN DATA ============ -->
+    <section class="adegan gelap" id="g2" style="background-image:url(assets/bg_hardware.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">🖥️ RAKIT &amp; KELOMPOKKAN PERANGKAT KERAS</span>
+          <span class="sub">Seret setiap komponen ke kelompok siklus pengolahan data yang benar</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="g2Waktu">⏱ 90 dtk</span>
+        <span class="chip" id="g2Skor">Benar 0 / 12</span>
+        <button class="btn abu" data-aksi="s5">◀ Arena</button>
+      </div>
+
+      <div class="panel" style="left:3%;right:3%;top:15.5%;height:16%;display:flex;align-items:center;gap:calc(var(--u)*.5);flex-wrap:wrap;justify-content:center"
+        id="g2Stok"></div>
+
+      <div style="position:absolute;left:3%;right:3%;top:34%;bottom:15%;display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--u)*.9)">
+        <div class="bin" data-bin="input">
+          <h5 style="color:#6fe08a">① INPUT<br><span class="kecil">Perangkat Masukan</span></h5>
+          <div class="isi"></div>
+        </div>
+        <div class="bin" data-bin="proses">
+          <h5 style="color:#ffc06f">② PROCESSING<br><span class="kecil">Perangkat Pemroses</span></h5>
+          <div class="isi"></div>
+        </div>
+        <div class="bin" data-bin="output">
+          <h5 style="color:#6fc6ff">③ OUTPUT<br><span class="kecil">Perangkat Keluaran</span></h5>
+          <div class="isi"></div>
+        </div>
+        <div class="bin" data-bin="storage">
+          <h5 style="color:#d3a8ff">④ STORAGE<br><span class="kecil">Perangkat Penyimpanan</span></h5>
+          <div class="isi"></div>
+        </div>
+      </div>
+
+      <div class="bar bawah">
+        <span class="kecil" id="g2Info">CPU, Motherboard, dan RAM adalah inti pemroses — HDD/SSD/Flashdisk termasuk penyimpanan.</span>
+        <div class="spacer"></div>
+        <button class="btn abu" id="g2Reset">↺ Ulangi</button>
+        <button class="btn hijau" id="g2Periksa">✔ Periksa Jawaban</button>
+      </div>
+    </section>
+
+    <!-- ============ GIM 3 — KALKULATOR & TANTANGAN IP ============ -->
+    <section class="adegan gelap" id="g3" style="background-image:url(assets/bg_ip.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">🌐 KALKULATOR KELAS IP &amp; SUBNET</span>
+          <span class="sub">Ubah angka oktet dan amati batas NetID / HostID berubah seketika</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="g3Skor">Tantangan 0 / 6</span>
+        <button class="btn abu" data-aksi="s5">◀ Arena</button>
+      </div>
+
+      <div class="panel" style="left:3%;top:15.5%;width:47%;bottom:5%">
+        <div class="oktet" style="justify-content:center;margin-bottom:calc(var(--u)*.9)">
+          <input type="number" min="0" max="255" value="192" data-okt="0"><span class="titik">.</span>
+          <input type="number" min="0" max="255" value="168" data-okt="1"><span class="titik">.</span>
+          <input type="number" min="0" max="255" value="1" data-okt="2"><span class="titik">.</span>
+          <input type="number" min="0" max="255" value="10" data-okt="3">
+        </div>
+        <div class="tengah" style="margin-bottom:calc(var(--u)*.8)">
+          <button class="btn" data-ipcontoh="10.20.30.40">Contoh Kelas A</button>
+          <button class="btn" data-ipcontoh="172.16.5.4">Contoh Kelas B</button>
+          <button class="btn" data-ipcontoh="192.168.1.10">Contoh Kelas C</button>
+        </div>
+        <div id="g3Hasil"></div>
+      </div>
+
+      <div class="panel" style="right:3%;top:15.5%;width:44%;bottom:5%;display:flex;flex-direction:column">
+        <h4 style="font-size:calc(var(--u)*1.35);color:var(--kuning)">🎯 Tantangan Pengalamatan</h4>
+        <p class="kecil" style="margin:calc(var(--u)*.4) 0 calc(var(--u)*.8)">Jawab 6 soal cepat memakai kalkulator di sebelah kiri sebagai alat bantu.</p>
+        <div id="g3Soal" style="flex:1;display:flex;flex-direction:column;gap:calc(var(--u)*.55)"></div>
+        <div id="g3Umpan" class="kecil" style="min-height:calc(var(--u)*4.5)"></div>
+        <div style="display:flex;gap:calc(var(--u)*.7);justify-content:flex-end">
+          <button class="btn abu" id="g3Reset">↺ Ulangi</button>
+          <button class="btn hijau" id="g3Lanjut">Soal Berikutnya ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GIM 4 — ENKAPSULASI TCP/IP ============ -->
+    <section class="adegan gelap" id="g4" style="background-image:url(assets/bg_tcpip.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">📦 SIMULASI ALIRAN DATA TCP/IP</span>
+          <span class="sub">Amati encapsulation di pengirim, lalu decapsulation di penerima</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="g4Skor">Kuis lapisan 0 / 4</span>
+        <button class="btn abu" data-aksi="s5">◀ Arena</button>
+      </div>
+
+      <div style="position:absolute;left:3%;top:16%;width:28%;bottom:14%" id="g4Kirim">
+        <div class="tengah" style="font-weight:800;font-size:calc(var(--u)*1.2);margin-bottom:calc(var(--u)*.5)">💻 PENGIRIM<br><span class="kecil">Encapsulation ⬇</span></div>
+        <div class="stack" id="g4StackKirim"></div>
+      </div>
+
+      <div style="position:absolute;right:3%;top:16%;width:28%;bottom:14%" id="g4Terima">
+        <div class="tengah" style="font-weight:800;font-size:calc(var(--u)*1.2);margin-bottom:calc(var(--u)*.5)">🖥️ PENERIMA<br><span class="kecil">Decapsulation ⬆</span></div>
+        <div class="stack" id="g4StackTerima"></div>
+      </div>
+
+      <div class="panel" style="left:33.5%;right:33.5%;top:16%;bottom:14%;display:flex;flex-direction:column;gap:calc(var(--u)*.6)">
+        <div class="tengah" style="font-weight:800;font-size:calc(var(--u)*1.15)" id="g4Tahap">Siap mengirim data</div>
+        <div class="term" id="g4Log" style="flex:1"></div>
+        <div id="g4Kuis" class="kecil"></div>
+        <div style="display:flex;gap:calc(var(--u)*.6);justify-content:center;flex-wrap:wrap">
+          <button class="btn hijau" id="g4Play">▶ Kirim Pesan</button>
+          <button class="btn kuning" id="g4Mulai">🎯 Kuis Lapisan</button>
+        </div>
+      </div>
+      <div class="paket" id="g4Paket" style="display:none">DATA</div>
+    </section>
+
+    <!-- ============ GIM 5 — TROUBLESHOOTING CHALLENGE ============ -->
+    <section class="adegan gelap" id="g5" style="background-image:url(assets/bg_noc.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">🚨 TROUBLESHOOTING CHALLENGE</span>
+          <span class="sub">Request Time Out! Perbaiki jaringan lab sampai perintah ping membalas Reply from…</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="g5Gangguan">Gangguan tersisa: 3</span>
+        <button class="btn abu" data-aksi="s5">◀ Arena</button>
+      </div>
+
+      <div class="panel" style="left:3%;right:37%;top:16%;bottom:5%" id="g5Skema"></div>
+
+      <div class="panel" style="right:3%;width:32%;top:16%;bottom:5%;display:flex;flex-direction:column;gap:calc(var(--u)*.6)">
+        <h4 style="font-size:calc(var(--u)*1.25);color:var(--sian)">🖳 Command Prompt</h4>
+        <div class="term" id="g5Term" style="flex:1"></div>
+        <div class="kecil" id="g5Petunjuk"></div>
+        <div style="display:flex;gap:calc(var(--u)*.5);flex-wrap:wrap;justify-content:center">
+          <button class="btn" id="g5Ping">▶ ping 192.168.1.20</button>
+          <button class="btn abu" id="g5Reset">↺ Kasus Baru</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCENE 06 — EVALUASI / UJI KOMPETENSI ============ -->
+    <section class="adegan tirai gelap" id="s4" style="background-image:url(assets/bg_kuis.jpg)">
+      <div class="bar atas">
+        <div style="display:flex;flex-direction:column">
+          <span class="judul">📝 EVALUASI: UJI KOMPETENSI TEKNOLOGI JARINGAN KOMPUTER</span>
+          <span class="sub">Pilih jawaban paling tepat berdasarkan materi Sub-bab A sampai E.</span>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip" id="kuisProgres">PROGRES 0 / 10</span>
+        <span class="chip" id="kuisWaktu">⏱ 10:00</span>
+      </div>
+
+      <div style="position:absolute;left:3%;right:3%;top:14.5%;height:7%;display:flex;align-items:center;gap:calc(var(--u)*.9)">
+        <div class="dots" id="kuisDots"></div>
+        <div class="spacer"></div>
+        <span class="kecil">🔵 Aktif &nbsp; 🟢 Benar &nbsp; 🔴 Salah &nbsp; ⚪ Belum dijawab</span>
+      </div>
+
+      <div class="panel" style="left:3%;width:50%;top:23%;bottom:13%;display:flex;flex-direction:column;gap:calc(var(--u)*.55)">
+        <div style="font-size:calc(var(--u)*1.5);font-weight:900;color:var(--sian)" id="kuisNo">SOAL 01</div>
+        <div style="font-size:calc(var(--u)*1.18);line-height:1.5" id="kuisTanya"></div>
+        <div id="kuisOpsi" style="display:flex;flex-direction:column;gap:calc(var(--u)*.45);margin-top:calc(var(--u)*.4)"></div>
+      </div>
+
+      <div class="panel" style="left:55%;width:23%;top:23%;bottom:13%;display:flex;flex-direction:column"
+        id="panelPenjelasan">
+        <h4 style="font-size:calc(var(--u)*1.25);color:var(--sian);border-bottom:1px solid rgba(58,215,255,.4);padding-bottom:calc(var(--u)*.4)">KOTAK PENJELASAN</h4>
+        <div id="kuisPenjelasan" class="kecil" style="margin-top:calc(var(--u)*.6);flex:1;overflow:auto;font-size:calc(var(--u)*1.02)">
+          Pilih salah satu jawaban untuk melihat alasannya di sini.
+        </div>
+      </div>
+
+      <div class="panel" style="right:3%;width:16%;top:23%;bottom:13%">
+        <h4 style="font-size:calc(var(--u)*1.15);color:var(--kuning)">INFORMASI UJIAN</h4>
+        <div class="kecil" style="margin-top:calc(var(--u)*.7);line-height:2">
+          ⏱ Sisa waktu<br><b class="mono" id="infoWaktu" style="font-size:calc(var(--u)*1.5)">10:00</b><br>
+          📄 Jumlah soal<br><b style="font-size:calc(var(--u)*1.3)">10 Soal</b><br>
+          🏆 Skor Anda<br><b id="infoSkor" style="font-size:calc(var(--u)*1.8);color:var(--hijau)">0</b><br>
+          🎯 Target kelulusan<br><b style="color:var(--kuning);font-size:calc(var(--u)*1.3)">Skor 70</b>
+        </div>
+      </div>
+
+      <div class="bar bawah">
+        <button class="btn abu" data-aksi="s3">◀ Kembali ke Materi</button>
+        <div class="spacer"></div>
+        <button class="btn hijau" id="kuisSelesai">✔ Selesaikan Evaluasi</button>
+        <button class="btn merah" data-aksi="s1">🏠 Home</button>
+      </div>
+    </section>
+
+    <!-- ============ SCENE 07 — HASIL & SERTIFIKAT ============ -->
+    <section class="adegan gelap" id="s6" style="background-image:url(assets/bg_lab.jpg)">
+      <div class="bar atas">
+        <span class="judul">🏅 HASIL UJI KOMPETENSI</span>
+        <div class="spacer"></div>
+        <button class="btn abu" data-aksi="s1">🏠 Beranda</button>
+      </div>
+      <div style="position:absolute;inset:13% 4% 12%;display:flex;gap:calc(var(--u)*1.4)">
+        <div class="panel" style="position:relative;width:33%;display:flex;flex-direction:column;gap:calc(var(--u)*.6)">
+          <div id="hasilRingkas"></div>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <canvas id="kanvasSertifikat" width="1400" height="990"></canvas>
+        </div>
+      </div>
+      <div class="bar bawah">
+        <button class="btn kuning" id="btnUnduhSertifikat">⬇ Unduh Sertifikat (PNG)</button>
+        <div class="spacer"></div>
+        <button class="btn" data-aksi="s4">↺ Ulangi Evaluasi</button>
+        <button class="btn ungu" data-aksi="s5">🕹️ Kembali ke Lab Simulasi</button>
+      </div>
+    </section>
+
+    <!-- ============ PRA-MUAT GAMBAR MATERI ============ -->
+    <div id="praMuat" style="display:none" aria-hidden="true">
+      <img id="pm_m_a" src="assets/sc3a_materi.jpg" alt="">
+      <img id="pm_m_b" src="assets/sc3b_materi.jpg" alt="">
+      <img id="pm_m_c" src="assets/sc3c_materi.jpg" alt="">
+      <img id="pm_m_d" src="assets/sc3d_materi.jpg" alt="">
+      <img id="pm_m_e" src="assets/sc3e_materi.jpg" alt="">
+    </div>
+
+    <!-- ============ OVERLAY: MENTOR CALLOUT ============ -->
+    <div class="callout" id="callout" style="display:none">
+      <img src="assets/avatar_mentor.png" alt="Mentor">
+      <div class="balon" id="calloutTeks"></div>
+    </div>
+
+    <!-- ============ OVERLAY: TOAST ============ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ============ OVERLAY: PENGATURAN ============ -->
+    <div class="selubung" id="ovSet">
+      <div class="kartu" style="width:52%">
+        <h3>⚙ Pengaturan</h3>
+        <div class="baris-set"><label>Musik latar</label><input type="range" id="setBgm" min="0" max="1" step=".05" value=".8"></div>
+        <div class="baris-set"><label>Efek suara</label><input type="range" id="setSfx" min="0" max="1" step=".05" value=".6"></div>
+        <div class="baris-set"><label>Narasi suara (VO)</label><input type="checkbox" id="setVo" checked></div>
+        <div class="baris-set"><label>Semua audio</label><input type="checkbox" id="setAudio" checked></div>
+        <div class="baris-set"><label>Teks callout mentor</label><input type="checkbox" id="setCallout" checked></div>
+        <p class="kecil" style="margin-top:calc(var(--u)*.8)">
+          Musik latar dan efek suara dibangkitkan langsung oleh Web Audio API. Narasi memakai berkas suara
+          Bahasa Indonesia yang disertakan pada folder <span class="mono">audio/</span>; bila tidak tersedia,
+          sistem otomatis memakai Web Speech API peramban.
+        </p>
+        <div class="aksi">
+          <button class="btn merah" id="setHapus">🗑 Hapus Progres</button>
+          <button class="btn hijau" id="setTutup">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OVERLAY: UMUM (info / ringkasan / alur) ============ -->
+    <div class="selubung" id="ovInfo">
+      <div class="kartu" id="ovInfoKartu"></div>
+    </div>
+
+  </div>
+
+  <script src="tone.js"></script>
+<script>const __VO_AUDIO__={"Halo calon Network Engineer masa depan! Selamat datang di Media Pembelajaran Interaktif Teknologi Jaringan Komputer. Ketuk tombol Mulai untuk masuk ke lab utama.": "audio/vo_001_b0a73ee4fd.m4a", "Halo calon Network Engineer masa depan! Bagi kalian yang ingin menguasai sistem operasi jaringan, perangkat keras, pengabelan, hingga protokol TCP/IP, yuk masuk ke tombol materi untuk belajar lebih dalam. Selamat belajar!": "audio/vo_002_b2b3590cd4.m4a", "Halo calon administrator jaringan masa depan! Selamat datang di tantangan studi kasus. Kira-kira menurut pendapatmu, jika sebuah komputer client mendadak terputus dari jaringan lab, langkah sistematis apa yang harus kamu lakukan terlebih dahulu? Apakah mengecek fisik kabel RJ 45, ataukah memeriksa tabel routing protokol TCP/IP?": "audio/vo_003_2f59c97842.m4a", "Halo calon administrator jaringan! Peta materi kita telah siap. Silakan klik pada salah satu tombol sub-bab yang ingin kamu kuasai terlebih dahulu secara detail, mulai dari sistem operasi hingga protokol data.": "audio/vo_004_b19b0e6971.m4a", "Yuk, kita mulai dengan mempelajari pondasi awal dari perangkat lunak, yaitu Sistem Operasi Jaringan. Klik tombol untuk membuka detail materi!": "audio/vo_005_f8ca5bd351.m4a", "Berikutnya kita masuk ke Sub-bab B. Kita akan membedah komponen fisik komputer mulai dari prosesor hingga perbedaan mutlak antara HDD dan SSD. Klik tombol untuk memulai!": "audio/vo_006_9e8d23e86c.m4a", "Mari melangkah ke Sub-bab C. Di sini kita akan belajar cara membangun jaringan komputer lokal LAN, memahami fungsi alat Switch dan Router, serta teknik crimping kabel UTP. Buka detail materi sekarang!": "audio/vo_007_6bd56021f7.m4a", "Sekarang kita masuk ke Sub-bab D. Kita akan mempelajari sistem identitas logis perangkat pada jaringan, yaitu alamat IP versi empat dan versi enam. Klik tombol untuk membuka detailnya!": "audio/vo_008_547ba2dba4.m4a", "Luar biasa, kita sudah sampai di sub-bab materi terakhir yaitu Sub-bab E. Di sini kita akan mempelajari aturan bahasa komunikasi internet global yang membagi tugas pengiriman data ke dalam empat lapisan utama model arsitektur TCP/IP. Mari kita bedah bersama!": "audio/vo_009_76e7b3f108.m4a", "Sistem operasi bertindak sebagai penerjemah instruksi manusia ke perangkat keras komputer. Ingat, arsitekturnya mengalir dari user, aplikasi, U I, kernel, hingga menggerakkan hardware fisik. Terdapat empat langkah utama booting, dimulai dari proses POST.": "audio/vo_010_ec554f3ea0.m4a", "Di dalam arsitektur komputer, performa sistem sangat dipengaruhi oleh komponen inti seperti prosesor dan RAM. Ingat siswa sekalian, sebagai anak I T kalian wajib tahu bahwa SSD jauh lebih unggul daripada HDD karena SSD menggunakan teknologi chip NAND Flash digital tanpa komponen bergerak.": "audio/vo_011_13f7ac7f35.m4a", "Ingat anak-anak TKJ, perbedaan utama Switch dan Router terletak pada basis kerjanya. Switch bekerja berdasarkan MAC Address untuk satu jaringan lokal LAN, sedangkan Router bekerja berdasarkan I P Address untuk menghubungkan jaringan yang berbeda. Untuk urutan kabel standar Indonesia, kita menggunakan susunan 568B dimulai dari putih oranye.": "audio/vo_012_95e79b63ff.m4a", "Anak-anakku sekalian, di dalam konfigurasi I P address kelas C, tiga oktet awal merupakan Network I D, dan oktet terakhir adalah Host I D. Komputer mengenali batasan pembagian bit NetID dan HostID ini melalui bantuan deretan angka yang disebut dengan Subnet Mask.": "audio/vo_013_fc516bb247.m4a", "Model TCP/IP membagi pekerjaan pengiriman data ke dalam empat lapisan. Application layer bertemu langsung dengan aplikasi pengguna, Transport layer memotong data menjadi segment, Internet layer memberi alamat I P dan menentukan rute, sedangkan Network Access layer mengubah paket menjadi frame dan sinyal listrik di kabel.": "audio/vo_014_3217ac840f.m4a", "Selamat datang di Lab Simulasi Jaringan! Di sini teori berubah menjadi praktik. Ada lima tantangan: crimping kabel UTP, pengelompokan perangkat keras, kalkulator alamat I P, simulasi aliran data TCP/IP, dan tantangan troubleshooting jaringan.": "audio/vo_015_ee47957c51.m4a", "Ambil tang crimping virtualmu! Susun delapan helai kabel sesuai standar TIA EIA 568B. Ingat, kabel straight untuk perangkat berbeda jenis, dan kabel crossover untuk perangkat sejenis.": "audio/vo_016_cbf7e79f5f.m4a", "Setiap perangkat keras memiliki perannya sendiri dalam siklus pengolahan data. Kelompokkan setiap komponen ke dalam input, processing, output, atau storage sebelum waktunya habis!": "audio/vo_017_4602280371.m4a", "Mari kita bedah anatomi alamat I P. Ubah angka pada tiap oktet dan perhatikan bagaimana kelas, subnet mask, serta batas Network I D dan Host I D ikut berubah seketika.": "audio/vo_018_f62e84bcdd.m4a", "Sekarang kita lihat bagaimana sebuah pesan dibungkus melewati empat lapisan TCP/IP di komputer pengirim, lalu dibongkar kembali lapis demi lapis di komputer penerima.": "audio/vo_019_7c535f14a7.m4a", "Perhatian! Koneksi antar komputer di lab terputus dan perintah ping memberi respons Request Time Out. Periksa skema jaringan, temukan setiap gangguan, lalu perbaiki sampai muncul balasan Reply from.": "audio/vo_020_0182c3eef5.m4a", "Lembar kuis jaringan komputer. Evaluasi pemahaman kognitifmu dari Sub-bab A hingga E. Pilih satu opsi jawaban yang paling tepat pada panel kuis. Target kelulusan adalah skor tujuh puluh.": "audio/vo_021_5777314011.m4a", "Selamat! Kamu dinyatakan kompeten pada modul Teknologi Jaringan Komputer. Sertifikatmu sudah siap diunduh. Teruslah berlatih, calon administrator jaringan!": "audio/vo_022_24e12de5f9.m4a", "Skormu belum mencapai target kelulusan tujuh puluh. Jangan berkecil hati, buka kembali materi Sub-bab A sampai E lalu ulangi evaluasinya.": "audio/vo_023_b0f629dfde.m4a"};</script>
+  <script>
+    /* =====================================================================
+       NET-DIGILEARN — logika aplikasi
+       Alur mengikuti storyboard TI_PPLG_3 (Teknologi Jaringan Komputer)
+       ===================================================================== */
+    const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+    const panggung = $('#panggung');
+    function skala() { panggung.style.setProperty('--u', (panggung.clientWidth / 100) + 'px'); }
+    addEventListener('resize', skala); skala();
+    const acak = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
+
+    /* ---------------------------------------------------------------- AUDIO */
+    const Suara = (() => {
+      let siap = false, master, bgmGain, sfxGain, bgmTimer, aktif = true, voAktif = true,
+        volBgm = .8, volSfx = .6, voAudio = null;
+      function init() {
+        if (siap) return; siap = true;
+        Tone.start();
+        master = new Tone.Gain(1).toDestination();
+        bgmGain = new Tone.Gain(.15 * volBgm).connect(master);
+        sfxGain = new Tone.Gain(volSfx).connect(master);
+      }
+      function nada(f, d, t = 'sine', g = .18, slide) {
+        if (!aktif) return; init();
+        const s = new Tone.Synth({ oscillator: { type: t }, envelope: { attack: .012, decay: d, sustain: 0, release: .02 } }).connect(sfxGain);
+        s.volume.value = Tone.gainToDb(g);
+        const now = Tone.now();
+        s.triggerAttack(f, now);
+        if (slide) s.oscillator.frequency.exponentialRampToValueAtTime(slide, now + d);
+        s.triggerRelease(now + d);
+        setTimeout(() => s.dispose(), (d + .3) * 1000);
+      }
+      const sfx = {
+        klik: () => nada(600, .06, 'square', .13, 380),
+        hover: () => nada(980, .035, 'sine', .05),
+        swish: () => nada(300, .26, 'sine', .1, 1200),
+        benar: () => { nada(659, .12); setTimeout(() => nada(880, .15), 90); setTimeout(() => nada(1175, .28), 190); },
+        salah: () => nada(150, .3, 'sawtooth', .16, 90),
+        pasang: () => nada(430, .09, 'triangle', .13, 720),
+        popup: () => nada(760, .12, 'sine', .12, 1150),
+        tutup: () => nada(430, .09, 'square', .1, 240),
+        tick: () => nada(1050, .03, 'square', .05),
+        ping: () => nada(1500, .07, 'sine', .1),
+        alarm: () => { nada(880, .16, 'square', .12); setTimeout(() => nada(660, .2, 'square', .12), 170); },
+        menang: () => [0, 110, 220, 400].forEach((d, i) => setTimeout(() => nada([523, 659, 784, 1046][i], .32), d))
+      };
+      const pola = [261.6, 329.6, 392, 523.3, 392, 329.6, 293.7, 349.2];
+      function bgm() {
+        init(); if (bgmTimer) return; let i = 0;
+        bgmTimer = setInterval(() => {
+          if (!aktif) return;
+          const f = pola[i % pola.length]; i++;
+          const s = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: .18, decay: 1.15, sustain: 0, release: .05 } }).connect(bgmGain);
+          s.volume.value = Tone.gainToDb(.085);
+          s.triggerAttackRelease(f, 1.15, Tone.now());
+          setTimeout(() => s.dispose(), 1400);
+        }, 600);
+      }
+      function suaraId() {
+        const v = speechSynthesis.getVoices();
+        return v.find(x => x.lang && x.lang.toLowerCase().startsWith('id')) || null;
+      }
+      function stopVoAudio() { if (voAudio) { voAudio.pause(); voAudio = null; } }
+      function vo(t) {
+        if (!aktif || !voAktif || !t) return;
+        stopVoAudio();
+        if (typeof __VO_AUDIO__ !== 'undefined' && __VO_AUDIO__[t]) {
+          voAudio = new Audio(__VO_AUDIO__[t]); voAudio.volume = 1;
+          voAudio.play().catch(() => { });
+          return;
+        }
+        if (!('speechSynthesis' in window)) return;
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'id-ID'; u.rate = .99; u.volume = 1;
+        const v = suaraId(); if (v) u.voice = v;
+        speechSynthesis.speak(u);
+      }
+      return {
+        sfx, bgm, init, vo,
+        stopVo: () => { stopVoAudio(); if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+        setBgm: v => { volBgm = v; if (bgmGain) bgmGain.gain.value = .15 * v; },
+        setSfx: v => { volSfx = v; if (sfxGain) sfxGain.gain.value = v; },
+        setAktif: v => { aktif = v; if (!v) { stopVoAudio(); if ('speechSynthesis' in window) speechSynthesis.cancel(); } },
+        setVo: v => { voAktif = v; if (!v) { stopVoAudio(); if ('speechSynthesis' in window) speechSynthesis.cancel(); } }
+      };
+    })();
+
+    /* ------------------------------------------------------------- PROGRES */
+    const KUNCI = 'netdigilearn_tjk';
+    const kosong = { baca: {}, gim: {}, kuis: null, pemantik: {} };
+    let progres = Object.assign({}, kosong, JSON.parse(localStorage.getItem(KUNCI) || '{}'));
+    const simpan = () => localStorage.setItem(KUNCI, JSON.stringify(progres));
+
+    /* --------------------------------------------------------------- TOAST */
+    let toastTimer;
+    function toast(pesan, jenis = '') {
+      const t = $('#toast');
+      t.textContent = pesan;
+      t.className = 'toast tampil ' + jenis;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.className = 'toast ' + jenis, 2400);
+    }
+
+    /* ------------------------------------------------------------- CALLOUT */
+    let calloutAktif = true;
+    function callout(teks) {
+      const c = $('#callout');
+      if (!teks || !calloutAktif) { c.style.display = 'none'; return; }
+      $('#calloutTeks').innerHTML = teks;
+      const ada = adeganKini && $('#' + adeganKini + ' .bar.bawah');
+      c.classList.toggle('tinggi', !!ada);
+      c.style.display = 'flex';
+    }
+
+    /* ---------------------------------------------------------------- NARASI
+       Teks voice-over diambil dari kolom "Voice Over/Audio Dialogue"
+       pada storyboard TI_PPLG_3.                                            */
+    const VO = {
+      s0: "Halo calon Network Engineer masa depan! Selamat datang di Media Pembelajaran Interaktif Teknologi Jaringan Komputer. Ketuk tombol Mulai untuk masuk ke lab utama.",
+      s1: "Halo calon Network Engineer masa depan! Bagi kalian yang ingin menguasai sistem operasi jaringan, perangkat keras, pengabelan, hingga protokol TCP/IP, yuk masuk ke tombol materi untuk belajar lebih dalam. Selamat belajar!",
+      s2: "Halo calon administrator jaringan masa depan! Selamat datang di tantangan studi kasus. Kira-kira menurut pendapatmu, jika sebuah komputer client mendadak terputus dari jaringan lab, langkah sistematis apa yang harus kamu lakukan terlebih dahulu? Apakah mengecek fisik kabel RJ 45, ataukah memeriksa tabel routing protokol TCP/IP?",
+      s3: "Halo calon administrator jaringan! Peta materi kita telah siap. Silakan klik pada salah satu tombol sub-bab yang ingin kamu kuasai terlebih dahulu secara detail, mulai dari sistem operasi hingga protokol data.",
+      s3a: "Yuk, kita mulai dengan mempelajari pondasi awal dari perangkat lunak, yaitu Sistem Operasi Jaringan. Klik tombol untuk membuka detail materi!",
+      s3b: "Berikutnya kita masuk ke Sub-bab B. Kita akan membedah komponen fisik komputer mulai dari prosesor hingga perbedaan mutlak antara HDD dan SSD. Klik tombol untuk memulai!",
+      s3c: "Mari melangkah ke Sub-bab C. Di sini kita akan belajar cara membangun jaringan komputer lokal LAN, memahami fungsi alat Switch dan Router, serta teknik crimping kabel UTP. Buka detail materi sekarang!",
+      s3d: "Sekarang kita masuk ke Sub-bab D. Kita akan mempelajari sistem identitas logis perangkat pada jaringan, yaitu alamat IP versi empat dan versi enam. Klik tombol untuk membuka detailnya!",
+      s3e: "Luar biasa, kita sudah sampai di sub-bab materi terakhir yaitu Sub-bab E. Di sini kita akan mempelajari aturan bahasa komunikasi internet global yang membagi tugas pengiriman data ke dalam empat lapisan utama model arsitektur TCP/IP. Mari kita bedah bersama!",
+      m_a: "Sistem operasi bertindak sebagai penerjemah instruksi manusia ke perangkat keras komputer. Ingat, arsitekturnya mengalir dari user, aplikasi, U I, kernel, hingga menggerakkan hardware fisik. Terdapat empat langkah utama booting, dimulai dari proses POST.",
+      m_b: "Di dalam arsitektur komputer, performa sistem sangat dipengaruhi oleh komponen inti seperti prosesor dan RAM. Ingat siswa sekalian, sebagai anak I T kalian wajib tahu bahwa SSD jauh lebih unggul daripada HDD karena SSD menggunakan teknologi chip NAND Flash digital tanpa komponen bergerak.",
+      m_c: "Ingat anak-anak TKJ, perbedaan utama Switch dan Router terletak pada basis kerjanya. Switch bekerja berdasarkan MAC Address untuk satu jaringan lokal LAN, sedangkan Router bekerja berdasarkan I P Address untuk menghubungkan jaringan yang berbeda. Untuk urutan kabel standar Indonesia, kita menggunakan susunan 568B dimulai dari putih oranye.",
+      m_d: "Anak-anakku sekalian, di dalam konfigurasi I P address kelas C, tiga oktet awal merupakan Network I D, dan oktet terakhir adalah Host I D. Komputer mengenali batasan pembagian bit NetID dan HostID ini melalui bantuan deretan angka yang disebut dengan Subnet Mask.",
+      m_e: "Model TCP/IP membagi pekerjaan pengiriman data ke dalam empat lapisan. Application layer bertemu langsung dengan aplikasi pengguna, Transport layer memotong data menjadi segment, Internet layer memberi alamat I P dan menentukan rute, sedangkan Network Access layer mengubah paket menjadi frame dan sinyal listrik di kabel.",
+      s5: "Selamat datang di Lab Simulasi Jaringan! Di sini teori berubah menjadi praktik. Ada lima tantangan: crimping kabel UTP, pengelompokan perangkat keras, kalkulator alamat I P, simulasi aliran data TCP/IP, dan tantangan troubleshooting jaringan.",
+      g1: "Ambil tang crimping virtualmu! Susun delapan helai kabel sesuai standar TIA EIA 568B. Ingat, kabel straight untuk perangkat berbeda jenis, dan kabel crossover untuk perangkat sejenis.",
+      g2: "Setiap perangkat keras memiliki perannya sendiri dalam siklus pengolahan data. Kelompokkan setiap komponen ke dalam input, processing, output, atau storage sebelum waktunya habis!",
+      g3: "Mari kita bedah anatomi alamat I P. Ubah angka pada tiap oktet dan perhatikan bagaimana kelas, subnet mask, serta batas Network I D dan Host I D ikut berubah seketika.",
+      g4: "Sekarang kita lihat bagaimana sebuah pesan dibungkus melewati empat lapisan TCP/IP di komputer pengirim, lalu dibongkar kembali lapis demi lapis di komputer penerima.",
+      g5: "Perhatian! Koneksi antar komputer di lab terputus dan perintah ping memberi respons Request Time Out. Periksa skema jaringan, temukan setiap gangguan, lalu perbaiki sampai muncul balasan Reply from.",
+      s4: "Lembar kuis jaringan komputer. Evaluasi pemahaman kognitifmu dari Sub-bab A hingga E. Pilih satu opsi jawaban yang paling tepat pada panel kuis. Target kelulusan adalah skor tujuh puluh.",
+      lulus: "Selamat! Kamu dinyatakan kompeten pada modul Teknologi Jaringan Komputer. Sertifikatmu sudah siap diunduh. Teruslah berlatih, calon administrator jaringan!",
+      gagal: "Skormu belum mencapai target kelulusan tujuh puluh. Jangan berkecil hati, buka kembali materi Sub-bab A sampai E lalu ulangi evaluasinya."
+    };
+
+    /* -------------------------------------------------- CALLOUT TIAP ADEGAN */
+    const CALLOUT = {
+      s0: "Selamat datang di Media Interaktif <b>Teknologi Jaringan Komputer</b>! Ketuk tombol <b>Mulai</b> untuk masuk.",
+      s1: "Sebelum konfigurasi di lab utama, pelajari <b>tantangan eksplorasi kasus</b> dan <b>materi jaringan</b> agar nanti bisa mengerjakan uji kompetensi dengan mudah.",
+      s2: "Selamat datang di Eksplorasi Masalah Teknologi Jaringan! Ketuk angka <b>1, 2, atau 3</b> untuk membuka arahan analisisnya.",
+      s3: "Selamat datang di Pusat Teori Jaringan Komputer! Silakan pilih salah satu dari <b>5 pilar materi</b> untuk mulai menguasai kompetensi dasar.",
+      s3a: "Sub-bab A: Sistem Operasi Komputer dan Server. Klik <b>Buka Detail Materi</b> untuk membedah konsep dasar perangkat lunak sistem.",
+      s3b: "Sub-bab B: Pengenalan Perangkat Keras Komputer. Klik <b>Buka Detail Sub-bab B</b> untuk mempelajari komponen fisik pendukung sistem.",
+      s3c: "Sub-bab C: Instalasi Jaringan Komputer dan Pengabelan. Klik <b>Buka Detail Sub-bab C</b> untuk mempelajari infrastruktur fisik LAN.",
+      s3d: "Sub-bab D: Sistem Pengalamatan IP Address (IPv4 &amp; IPv6). Klik <b>Buka Detail D</b> untuk mempelajari identitas logis perangkat.",
+      s3e: "Sub-bab E: Arsitektur dan Sistem Protokol TCP/IP. Klik <b>Buka Detail E</b> untuk membedah empat lapisan pengiriman data.",
+      s5: "Teori sudah, kini praktik! Selesaikan <b>lima tantangan lab</b> untuk mengumpulkan bintang sebelum uji kompetensi.",
+      s4: "Pilih satu opsi jawaban (A, B, C, atau D) yang paling tepat. Penjelasan otomatis muncul di <b>Kotak Penjelasan</b>."
+    };
+
+    /* --------------------------------------------------------- MESIN ADEGAN */
+    let adeganKini = '';
+    const bgmMulai = () => Suara.bgm();
+    function keAdegan(id) {
+      Suara.stopVo();
+      $('#ovInfo').classList.remove('aktif');
+      $$('.adegan').forEach(a => a.classList.remove('aktif'));
+      const el = $('#' + id);
+      if (!el) return;
+      el.classList.add('aktif');
+      adeganKini = id;
+      callout(CALLOUT[id]);
+      if (VO[id]) setTimeout(() => Suara.vo(VO[id]), 380);
+      if (SIAP_ADEGAN[id]) SIAP_ADEGAN[id]();
+    }
+    const SIAP_ADEGAN = {};
+
+    /* ------------------------------------------------ MATERI: ZOOM & GESER */
+    const MATERI = {
+      m_a: { img: 'pm_m_a', judul: 'Sub-bab A · Sistem Operasi Komputer dan Server', next: 's3b', nextLabel: 'Lanjut ke Sub-bab B ▶' },
+      m_b: { img: 'pm_m_b', judul: 'Sub-bab B · Pengenalan Perangkat Keras (Hardware)', next: 's3c', nextLabel: 'Lanjut ke Sub-bab C ▶' },
+      m_c: { img: 'pm_m_c', judul: 'Sub-bab C · Instalasi Jaringan dan Pengabelan', next: 's3d', nextLabel: 'Lanjut ke Sub-bab D ▶' },
+      m_d: { img: 'pm_m_d', judul: 'Sub-bab D · Sistem Pengalamatan IP Address', next: 's3e', nextLabel: 'Lanjut ke Sub-bab E ▶' },
+      m_e: { img: 'pm_m_e', judul: 'Sub-bab E · Arsitektur dan Protokol TCP/IP', next: 's4', nextLabel: '✔ Selesai Belajar & Uji Kompetensi' }
+    };
+
+    const RINGKAS = {
+      m_a: ['<b>Definisi.</b> Perangkat lunak sistem yang mengontrol dan mengelola hardware serta menjalankan aplikasi — jembatan antara user, aplikasi, dan hardware.',
+        '<b>Alur kerja.</b> User → Aplikasi → User Interface → Kernel → Perangkat Keras.',
+        '<b>4 fungsi utama.</b> Manajemen proses, manajemen memori utama, manajemen sistem berkas, manajemen perangkat I/O.',
+        '<b>Komponen utama.</b> Kernel (inti OS, berinteraksi langsung dengan hardware) dan User Interface (antarmuka luar).',
+        '<b>4 langkah booting.</b> POST (BIOS/UEFI) → mencari Boot Loader → loading kernel ke RAM → menampilkan UI.',
+        '<b>Klasifikasi.</b> Antarmuka: CLI (Linux Server, Cisco IOS) vs GUI (Windows 11, macOS). Lisensi: Open Source (Debian/Ubuntu) vs Closed Source (Windows).'],
+      m_b: ['<b>Definisi.</b> Komponen fisik komputer yang dapat dilihat dan disentuh; butuh instruksi software dan kendali brainware.',
+        '<b>Siklus pengolahan data.</b> Input → Processing → Output → Storage.',
+        '<b>The Core.</b> CPU (ALU untuk perhitungan, CU untuk pengatur lalu lintas data), Motherboard (papan sirkuit & jalur bus), RAM (volatile, DDR4/DDR5).',
+        '<b>HDD vs SSD.</b> HDD mekanis 100–150 MB/s, rentan guncangan, berisik. SSD NAND Flash 500–7000+ MB/s, tahan guncangan, hening, hemat daya.',
+        '<b>Perangkat I/O.</b> Input: keyboard, mouse, touchpad, scanner. Output: monitor (IPS/VA/OLED), printer Inkjet, LaserJet, Dot Matrix.',
+        '<b>Pendingin.</b> Air Cooler (heatsink + kipas) dan Liquid Cooler (sirkulasi cairan radiator untuk server/PC performa tinggi).'],
+      m_c: ['<b>Definisi jaringan.</b> Sekumpulan komputer otonom yang terhubung melalui media kabel/nirkabel untuk berbagi data, perangkat keras, dan koneksi internet.',
+        '<b>Klasifikasi geografis.</b> LAN (lab/kantor satu lantai), MAN (skala kota, radius 10–50 km), WAN (antarnegara hingga global — contoh: Internet).',
+        '<b>End-device.</b> PC client, laptop, server, network printer, smartphone — semuanya wajib punya NIC.',
+        '<b>Intermediary devices.</b> Switch (satu LAN, berbasis MAC Address), Router (antar-segmen subnet, berbasis IP Address), Access Point (koneksi nirkabel).',
+        '<b>Media transmisi.</b> UTP + konektor RJ-45, Fiber Optic (pulsa cahaya, kebal induksi elektromagnetik), nirkabel (Wi-Fi, Bluetooth).',
+        '<b>568B pin 1–8.</b> Putih Oranye, Oranye, Putih Hijau, Biru, Putih Biru, Hijau, Putih Cokelat, Cokelat.',
+        '<b>Straight vs Crossover.</b> Straight = kedua ujung 568B untuk perangkat berbeda jenis. Crossover = ujung A 568A & ujung B 568B untuk perangkat sejenis.',
+        '<b>4 tahapan instalasi LAN.</b> Perencanaan → Instalasi fisik → Konfigurasi logis (IP & subnet mask) → Pengujian data (ping hingga muncul Reply from…).'],
+      m_d: ['<b>Definisi.</b> Alamat identitas unik berupa angka numerik untuk setiap host yang terhubung ke jaringan berbasis protokol IP.',
+        '<b>2 fungsi utama.</b> Host Identifier (identitas unik perangkat) dan Location Identifier (penunjuk lokasi topologi jaringan).',
+        '<b>IPv4.</b> 32 bit, 4 oktet desimal (0–255), contoh 192.168.1.10, kapasitas ±4,3 miliar alamat.',
+        '<b>IPv6.</b> 128 bit, 8 kelompok heksadesimal dipisah titik dua, contoh 2001:0db8:85a3:0000:0000:8a2e:0370:7334.',
+        '<b>Anatomi IPv4.</b> NetID (sama untuk semua host satu LAN) + HostID (unik, tidak boleh kembar); pemisahnya adalah Subnet Mask.',
+        '<b>Kelas A.</b> Oktet pertama 1–126 · 1 oktet NetID · mask 255.0.0.0 · hingga 16 juta host.',
+        '<b>Kelas B.</b> Oktet pertama 128–191 · 2 oktet NetID · mask 255.255.0.0 · maksimal 65.534 host.',
+        '<b>Kelas C.</b> Oktet pertama 192–223 · 3 oktet NetID · mask 255.255.255.0 · maksimal 254 host.',
+        '<b>Public vs Private.</b> Private gratis untuk internal lokal (mis. 192.168.0.0–192.168.255.255); Public unik sedunia, disewa lewat ISP, diatur IANA.'],
+      m_e: ['<b>Definisi.</b> Sekumpulan protokol standar yang mengatur pengiriman dan penerimaan data antar-komputer di internet global; dikembangkan DARPA akhir 1970-an untuk ARPANET.',
+        '<b>1. Application Layer.</b> Bersentuhan dengan aplikasi pengguna. Protokol: HTTP/HTTPS, FTP, SMTP/IMAP, DNS.',
+        '<b>2. Transport Layer.</b> Pengiriman end-to-end, memotong data menjadi Segment, flow control, deteksi error.',
+        '<b>TCP.</b> Connection-oriented, three-way handshake, retransmit bila segment hilang — akurat &amp; aman (web, transfer file, email).',
+        '<b>UDP.</b> Connectionless, tanpa konfirmasi — sangat cepat &amp; ringan (live streaming, VoIP, game online).',
+        '<b>3. Internet Layer.</b> Pengalamatan logis dan routing. Protokol: IP, ICMP (ping), ARP.',
+        '<b>4. Network Access Layer.</b> Berinteraksi dengan media fisik; mengemas paket menjadi frame. Contoh: Ethernet, Wi-Fi 802.11, PPP.']
+    };
+
+    let vz = { skala: 1, x: 0, y: 0, seret: false, ax: 0, ay: 0, materi: 'm_a' };
+    const vimg = $('#viewerImg'), viewer = $('#viewer');
+    function terapkanViewer() {
+      const w = viewer.clientWidth, h = viewer.clientHeight;
+      const maxX = Math.max(0, w * vz.skala - w), maxY = Math.max(0, h * vz.skala - h);
+      vz.x = Math.min(0, Math.max(-maxX, vz.x));
+      vz.y = Math.min(0, Math.max(-maxY, vz.y));
+      vimg.style.transform = `translate(${vz.x}px,${vz.y}px) scale(${vz.skala})`;
+    }
+    function bukaMateri(kode) {
+      const m = MATERI[kode]; if (!m) return;
+      vz.materi = kode; vz.skala = 1; vz.x = 0; vz.y = 0;
+      vimg.src = document.getElementById(m.img).src;
+      $('#judulMateri').textContent = m.judul;
+      const b = $('#btnLanjutMateri');
+      b.textContent = m.nextLabel;
+      b.onclick = () => { Suara.sfx.klik(); keAdegan(m.next); };
+      terapkanViewer();
+      progres.baca[kode] = true; simpan();
+      keAdegan('sMateri');
+      callout(null);
+      setTimeout(() => Suara.vo(VO[kode]), 380);
+    }
+    $$('.zoombar button').forEach(b => b.onclick = () => {
+      Suara.sfx.klik();
+      const z = b.dataset.zoom;
+      if (z === 'in') vz.skala = Math.min(4, vz.skala * 1.35);
+      else if (z === 'out') vz.skala = Math.max(1, vz.skala / 1.35);
+      else { vz.skala = 1; vz.x = 0; vz.y = 0; }
+      terapkanViewer();
+    });
+    viewer.addEventListener('wheel', e => {
+      e.preventDefault();
+      const lama = vz.skala;
+      vz.skala = Math.min(4, Math.max(1, vz.skala * (e.deltaY < 0 ? 1.14 : 1 / 1.14)));
+      const r = viewer.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      vz.x = px - (px - vz.x) * (vz.skala / lama);
+      vz.y = py - (py - vz.y) * (vz.skala / lama);
+      terapkanViewer();
+    }, { passive: false });
+    const mulaiSeret = (cx, cy) => { vz.seret = true; vz.ax = cx - vz.x; vz.ay = cy - vz.y; viewer.classList.add('tarik'); };
+    const geserSeret = (cx, cy) => { if (!vz.seret) return; vz.x = cx - vz.ax; vz.y = cy - vz.ay; terapkanViewer(); };
+    const stopSeret = () => { vz.seret = false; viewer.classList.remove('tarik'); };
+    viewer.addEventListener('mousedown', e => mulaiSeret(e.clientX, e.clientY));
+    addEventListener('mousemove', e => geserSeret(e.clientX, e.clientY));
+    addEventListener('mouseup', stopSeret);
+    viewer.addEventListener('touchstart', e => mulaiSeret(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    viewer.addEventListener('touchmove', e => geserSeret(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    viewer.addEventListener('touchend', stopSeret);
+    addEventListener('resize', terapkanViewer);
+
+    $('#btnRingkas').onclick = () => {
+      Suara.sfx.popup();
+      const m = MATERI[vz.materi];
+      infoKartu(`📋 Ringkasan Kunci — ${m.judul}`,
+        '<ul style="margin-left:calc(var(--u)*1.4);line-height:1.75;font-size:calc(var(--u)*1.08)">'
+        + RINGKAS[vz.materi].map(t => `<li style="margin-bottom:calc(var(--u)*.4)">${t}</li>`).join('') + '</ul>');
+    };
+
+    /* ------------------------------------------------------- KARTU INFO/OV */
+    function infoKartu(judul, isiHtml, aksiHtml) {
+      $('#ovInfoKartu').innerHTML =
+        `<h3>${judul}</h3><div>${isiHtml}</div>
+         <div class="aksi">${aksiHtml || ''}<button class="btn hijau" data-tutup-info>Tutup</button></div>`;
+      $('#ovInfo').classList.add('aktif');
+    }
+    $('#ovInfo').addEventListener('click', e => {
+      if (e.target.id === 'ovInfo' || e.target.hasAttribute('data-tutup-info')) {
+        Suara.sfx.tutup(); $('#ovInfo').classList.remove('aktif');
+      }
+    });
+
+    /* -------------------------------------------------- SCENE 02 — PEMANTIK */
+    const PEMANTIK = [
+      {
+        j: 'Pertanyaan 1 · Urutan pemeriksaan',
+        t: `Gunakan pendekatan <b>bottom-up</b>: mulai dari lapisan paling fisik menuju lapisan logis.
+            <br><br>① <b>Kabel fisik LAN</b> — pastikan konektor RJ-45 terpasang dan lampu indikator NIC/switch menyala.
+            <br>② <b>Konfigurasi IP Address</b> — pastikan client dan server berada di NetID yang sama dan tidak bentrok.
+            <br>③ <b>Sistem operasi jaringan</b> — periksa firewall, service, dan status daemon di sisi server.
+            <br><br>Alasannya, gangguan lapisan fisik adalah penyebab paling sering sekaligus paling murah untuk diperiksa.`
+      },
+      {
+        j: 'Pertanyaan 2 · Mengapa dasar tetap krusial',
+        t: `Cloud tidak menghapus infrastruktur — ia hanya <b>memindahkannya</b> ke data center orang lain.
+            <br><br>• Paket data tetap melewati kabel tembaga/fiber, tetap dibungkus menjadi frame Ethernet.
+            <br>• Kesalahan urutan pin 568B tetap menyebabkan link mati atau kecepatan turun ke 10 Mbps.
+            <br>• Diagnosis error cloud (latency, timeout, DNS) hanya bisa dibaca jika paham lapisan TCP/IP.
+            <br><br>Teknisi yang menguasai dasar dapat memperbaiki masalah yang tidak bisa dijawab dashboard mana pun.`
+      },
+      {
+        j: 'Pertanyaan 3 · Jalur profesi',
+        t: `<b>Network Administrator</b> — mengelola perangkat, VLAN, routing, dan monitoring jaringan kantor.
+            <br><b>Network/Security Engineer</b> — merancang topologi, firewall, VPN, dan hardening infrastruktur.
+            <br><b>Cloud Engineer</b> — membangun jaringan virtual (VPC, subnet, load balancer) di AWS/Azure/GCP.
+            <br><b>DevOps / SRE Specialist</b> — mengotomatiskan deployment serta menjaga keandalan layanan.
+            <br><b>Technical Support / NOC Engineer</b> — pintu masuk karier paling umum bagi lulusan SMK TJKT.
+            <br><br>Semuanya berdiri di atas fondasi yang sama: OS, hardware, pengabelan, IP, dan TCP/IP.`
+      }
+    ];
+    $$('[data-pemantik]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.pemantik;
+      Suara.sfx.popup();
+      const p = PEMANTIK[i];
+      infoKartu(`💡 Arahan Analisis — ${p.j}`,
+        `<p style="line-height:1.7">${p.t}</p>`);
+      progres.pemantik[i] = true; simpan();
+    });
+
+    /* ------------------------------------------------------ SCENE 04 — HUB */
+    const SUBBAB = [['m_a', 'A · Sistem Operasi'], ['m_b', 'B · Perangkat Keras'], ['m_c', 'C · Instalasi & Pengabelan'],
+    ['m_d', 'D · Alamat IP'], ['m_e', 'E · Model TCP/IP']];
+    SIAP_ADEGAN.s3 = () => {
+      const sudah = SUBBAB.filter(s => progres.baca[s[0]]).length;
+      $('#panelProgresMateri').innerHTML =
+        `<div style="font-weight:800;font-size:calc(var(--u)*1.15);color:var(--sian)">📚 Progres Belajar ${sudah}/5</div>
+         <div class="kecil" style="margin-top:calc(var(--u)*.4);line-height:1.9">` +
+        SUBBAB.map(s => `${progres.baca[s[0]] ? '✅' : '⬜'} ${s[1]}`).join('<br>') + '</div>';
+    };
+  </script>
+
+  <script>
+    /* =====================================================================
+       LAB SIMULASI — lima tantangan praktik
+       ===================================================================== */
+
+    const GIM = [
+      { id: 'g1', ik: '🔌', nama: 'Simulator Crimping UTP', ket: 'Susun 8 warna kabel sesuai TIA/EIA-568B & 568A, tentukan straight atau crossover.' },
+      { id: 'g2', ik: '🖥️', nama: 'Siklus Perangkat Keras', ket: 'Kelompokkan 12 komponen ke Input, Processing, Output, dan Storage.' },
+      { id: 'g3', ik: '🌐', nama: 'Kalkulator Kelas IP', ket: 'Bedah NetID/HostID secara real-time lalu jawab 6 tantangan pengalamatan.' },
+      { id: 'g4', ik: '📦', nama: 'Aliran Data TCP/IP', ket: 'Amati encapsulation & decapsulation empat lapisan, lalu uji pemahamanmu.' },
+      { id: 'g5', ik: '🚨', nama: 'Troubleshooting Challenge', ket: 'Perbaiki tiga gangguan jaringan sampai perintah ping membalas Reply from…' }
+    ];
+
+    function bintang(n) { return '⭐'.repeat(n) + '☆'.repeat(3 - n); }
+    function setBintang(id, n) {
+      const lama = progres.gim[id] || 0;
+      if (n > lama) { progres.gim[id] = n; simpan(); }
+    }
+    function totalBintang() { return GIM.reduce((s, g) => s + (progres.gim[g.id] || 0), 0); }
+
+    SIAP_ADEGAN.s5 = () => {
+      $('#chipTotalBintang').textContent = `⭐ ${totalBintang()} / 15`;
+      $('#gridGim').innerHTML = GIM.map(g => {
+        const b = progres.gim[g.id] || 0;
+        return `<button class="kartu-gim" data-gim="${g.id}">
+          <div class="ik">${g.ik}</div><h4>${g.nama}</h4><p>${g.ket}</p>
+          <div class="status ${b === 3 ? 'lulus' : ''}">${bintang(b)}</div></button>`;
+      }).join('');
+      $$('[data-gim]').forEach(b => b.onclick = () => { Suara.sfx.klik(); keAdegan(b.dataset.gim); });
+    };
+
+    /* ================================================================ GIM 1
+       Simulator crimping kabel UTP                                          */
+    const WARNA = {
+      pO: { n: 'Putih<br>Oranye', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#f0932b 8px 16px)' },
+      O: { n: 'Oranye', css: 'linear-gradient(180deg,#ffa940,#e07b0a)' },
+      pH: { n: 'Putih<br>Hijau', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#27ae60 8px 16px)' },
+      B: { n: 'Biru', css: 'linear-gradient(180deg,#4a90e2,#1c5fb0)' },
+      pB: { n: 'Putih<br>Biru', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#4a90e2 8px 16px)' },
+      H: { n: 'Hijau', css: 'linear-gradient(180deg,#2ecc71,#128a45)' },
+      pC: { n: 'Putih<br>Cokelat', css: 'repeating-linear-gradient(135deg,#fff 0 8px,#8b5a2b 8px 16px)' },
+      C: { n: 'Cokelat', css: 'linear-gradient(180deg,#a06a35,#6b4420)' }
+    };
+    const STD = { B: ['pO', 'O', 'pH', 'B', 'pB', 'H', 'pC', 'C'], A: ['pH', 'H', 'pO', 'B', 'pB', 'O', 'pC', 'C'] };
+
+    const G1_TUGAS = [
+      {
+        dev: 'PC Client → port Switch', jenis: 'straight', ujung: 'Ujung A', std: 'B',
+        brief: 'Seorang teknisi memasang komputer klien baru di lab dan menghubungkannya langsung ke port Switch. Tentukan <b>jenis kabel</b> yang benar, lalu susun <b>Ujung A</b> pada konektor RJ-45.'
+      },
+      {
+        dev: 'PC Client → port Switch', jenis: 'straight', ujung: 'Ujung B', std: 'B',
+        brief: 'Kabel yang sama harus dikeriting pada sisi seberangnya. Tentukan kembali jenis kabelnya, lalu susun <b>Ujung B</b>.'
+      },
+      {
+        dev: 'Switch lantai 1 → Switch lantai 2', jenis: 'crossover', ujung: 'Ujung A', std: 'A',
+        brief: 'Dua buah Switch pada lantai berbeda akan dihubungkan langsung tanpa perangkat perantara. Tentukan jenis kabel yang tepat, lalu susun <b>Ujung A</b>-nya.'
+      }
+    ];
+
+    let g1 = { ronde: 0, pins: Array(8).fill(null), pilih: null, jenis: null, skor: [0, 0, 0], selesai: false };
+
+    function g1Render() {
+      const t = G1_TUGAS[g1.ronde];
+      $('#g1Ronde').textContent = `Tugas ${g1.ronde + 1} / 3`;
+      $('#g1Skor').textContent = `Skor ${Math.round(g1.skor.reduce((a, b) => a + b, 0) / 3)}`;
+      $('#g1Tugas').textContent = `${t.dev} — ${t.ujung}`;
+      $('#g1Brief').innerHTML = t.brief +
+        `<div style="margin-top:calc(var(--u)*.7);display:flex;gap:calc(var(--u)*.5)">
+           <button class="btn ${g1.jenis === 'straight' ? 'hijau' : 'abu'}" data-jenis="straight">Kabel Straight</button>
+           <button class="btn ${g1.jenis === 'crossover' ? 'hijau' : 'abu'}" data-jenis="crossover">Kabel Crossover</button>
+         </div>`;
+      $$('[data-jenis]').forEach(b => b.onclick = () => {
+        if (g1.selesai) return;
+        Suara.sfx.klik(); g1.jenis = b.dataset.jenis; g1Render();
+      });
+      $('#g1LabelUjung').innerHTML = `Konektor RJ-45 — <span style="color:var(--kuning)">${t.ujung}</span>`;
+
+      $('#g1Pins').innerHTML = g1.pins.map((w, i) =>
+        `<div class="pin" data-pin="${i}"><span class="no">${i + 1}</span>${w ? kepingHtml(w, true) : ''}</div>`).join('');
+      const dipakai = g1.pins.filter(Boolean);
+      $('#g1Palet').innerHTML = Object.keys(WARNA).map(k =>
+        `<div class="warna ${dipakai.includes(k) ? 'hilang' : ''} ${g1.pilih === k ? 'terpilih' : ''}"
+              draggable="true" data-warna="${k}" style="background:${WARNA[k].css}"><span>${WARNA[k].n}</span></div>`).join('');
+      g1Ikat();
+    }
+    const kepingHtml = (k, statis) =>
+      `<div class="warna" ${statis ? '' : 'draggable="true"'} data-warna="${k}" style="background:${WARNA[k].css};cursor:pointer">
+         <span>${WARNA[k].n}</span></div>`;
+
+    function g1Ikat() {
+      $$('#g1Palet .warna').forEach(el => {
+        el.ondragstart = e => { g1.pilih = el.dataset.warna; e.dataTransfer.setData('text', el.dataset.warna); };
+        el.onclick = () => { if (g1.selesai) return; Suara.sfx.klik(); g1.pilih = g1.pilih === el.dataset.warna ? null : el.dataset.warna; g1Render(); };
+      });
+      $$('#g1Pins .pin').forEach(p => {
+        const i = +p.dataset.pin;
+        p.ondragover = e => { e.preventDefault(); p.classList.add('over'); };
+        p.ondragleave = () => p.classList.remove('over');
+        p.ondrop = e => {
+          e.preventDefault(); p.classList.remove('over');
+          g1Taruh(i, e.dataTransfer.getData('text'));
+        };
+        p.onclick = () => {
+          if (g1.selesai) return;
+          if (g1.pins[i]) { Suara.sfx.tutup(); g1.pins[i] = null; g1.pilih = null; g1Render(); return; }
+          if (g1.pilih) g1Taruh(i, g1.pilih);
+        };
+      });
+    }
+    function g1Taruh(i, w) {
+      if (g1.selesai || !w || !WARNA[w]) return;
+      const lama = g1.pins.indexOf(w); if (lama >= 0) g1.pins[lama] = null;
+      g1.pins[i] = w; g1.pilih = null;
+      Suara.sfx.pasang();
+      g1Render();
+    }
+
+    $('#g1Reset').onclick = () => { Suara.sfx.klik(); g1.pins = Array(8).fill(null); g1.pilih = null; g1.selesai = false; g1Render(); };
+    $('#g1Bantu').onclick = () => {
+      Suara.sfx.popup();
+      const t = G1_TUGAS[g1.ronde];
+      infoKartu('💡 Petunjuk Crimping',
+        `<p>Perangkat <b>berbeda jenis</b> (PC↔Switch, Router↔Switch) memakai kabel <b>Straight-through</b>: kedua ujung disusun 568B.</p>
+         <p>Perangkat <b>sejenis</b> (PC↔PC, Switch↔Switch, Router↔Router) memakai kabel <b>Crossover</b>: Ujung A 568A, Ujung B 568B.</p>
+         <p>Urutan <b>568B</b>: Putih Oranye · Oranye · Putih Hijau · Biru · Putih Biru · Hijau · Putih Cokelat · Cokelat.</p>
+         <p>Urutan <b>568A</b>: Putih Hijau · Hijau · Putih Oranye · Biru · Putih Biru · Oranye · Putih Cokelat · Cokelat.</p>
+         <p class="kecil">Petunjuk untuk tugas ini: perhatikan bahwa yang dihubungkan adalah <b>${t.dev}</b>.</p>`);
+    };
+
+    $('#g1Periksa').onclick = () => {
+      if (g1.selesai) return;
+      const t = G1_TUGAS[g1.ronde];
+      if (!g1.jenis) { Suara.sfx.salah(); toast('Tentukan dulu jenis kabelnya: straight atau crossover.', 'buruk'); return; }
+      if (g1.pins.some(p => !p)) { Suara.sfx.salah(); toast('Masih ada pin yang kosong. Lengkapi 8 helai kabel.', 'buruk'); return; }
+      const target = STD[t.std];
+      let benar = 0;
+      $$('#g1Pins .pin').forEach((p, i) => {
+        const ok = g1.pins[i] === target[i];
+        p.classList.add(ok ? 'benar' : 'salah');
+        if (ok) benar++;
+      });
+      const jenisOk = g1.jenis === t.jenis;
+      const nilai = Math.round(benar / 8 * 80 + (jenisOk ? 20 : 0));
+      g1.skor[g1.ronde] = nilai;
+      g1.selesai = true;
+      $('#g1Skor').textContent = `Skor ${Math.round(g1.skor.reduce((a, b) => a + b, 0) / 3)}`;
+      if (benar === 8 && jenisOk) Suara.sfx.benar(); else Suara.sfx.salah();
+      const rerata = Math.round(g1.skor.reduce((a, b) => a + b, 0) / 3);
+      const terakhir = g1.ronde === 2;
+      infoKartu(benar === 8 && jenisOk ? '✅ Kabel Lolos Uji LAN Tester' : '⚠️ Kabel Belum Sempurna',
+        `<p>Jenis kabel: <b style="color:${jenisOk ? 'var(--hijau)' : 'var(--merah)'}">${g1.jenis}</b>
+           — seharusnya <b>${t.jenis}</b> karena menghubungkan ${t.dev}.</p>
+         <p>Urutan pin benar: <b>${benar} dari 8</b> (standar ${t.std === 'B' ? 'TIA/EIA-568B' : 'TIA/EIA-568A'}).</p>
+         <p>Urutan yang benar: ${target.map((k, i) => `<b>${i + 1}.</b> ${WARNA[k].n.replace('<br>', ' ')}`).join(' · ')}</p>
+         <p>Nilai tugas ini: <b style="font-size:calc(var(--u)*1.6);color:var(--kuning)">${nilai}</b></p>
+         ${terakhir ? `<p>Rerata tiga tugas: <b>${rerata}</b> → ${bintang(rerata >= 85 ? 3 : rerata >= 70 ? 2 : rerata >= 50 ? 1 : 0)}</p>` : ''}`,
+        terakhir
+          ? `<button class="btn kuning" onclick="g1Mulai();document.getElementById('ovInfo').classList.remove('aktif')">↺ Ulangi Semua</button>`
+          : `<button class="btn hijau" onclick="g1Berikut();document.getElementById('ovInfo').classList.remove('aktif')">Tugas Berikutnya ▶</button>`);
+      if (terakhir) {
+        const b = rerata >= 85 ? 3 : rerata >= 70 ? 2 : rerata >= 50 ? 1 : 0;
+        setBintang('g1', b);
+        if (b === 3) Suara.sfx.menang();
+      }
+    };
+    function g1Berikut() {
+      Suara.sfx.klik();
+      g1.ronde = Math.min(2, g1.ronde + 1);
+      g1.pins = Array(8).fill(null); g1.pilih = null; g1.jenis = null; g1.selesai = false;
+      g1Render();
+    }
+    function g1Mulai() {
+      g1 = { ronde: 0, pins: Array(8).fill(null), pilih: null, jenis: null, skor: [0, 0, 0], selesai: false };
+      g1Render();
+    }
+    SIAP_ADEGAN.g1 = () => { g1Mulai(); setTimeout(() => Suara.vo(VO.g1), 380); callout(null); };
+
+    /* ================================================================ GIM 2
+       Siklus pengolahan data perangkat keras                                */
+    const G2_ITEM = [
+      ['Keyboard', 'input'], ['Mouse', 'input'], ['Scanner / Barcode', 'input'], ['Touchpad', 'input'],
+      ['CPU (Prosesor)', 'proses'], ['Motherboard', 'proses'], ['RAM DDR5', 'proses'],
+      ['Monitor IPS', 'output'], ['Printer LaserJet', 'output'], ['Printer Dot Matrix', 'output'],
+      ['HDD (Magnetik)', 'storage'], ['SSD (NAND Flash)', 'storage']
+    ];
+    const G2_KET = {
+      input: 'Perangkat masukan mengirim data/perintah dari pengguna ke komputer.',
+      proses: 'Perangkat pemroses mengolah data — CPU (ALU & CU), Motherboard, dan RAM yang bersifat volatile.',
+      output: 'Perangkat keluaran menyajikan hasil olahan kepada pengguna.',
+      storage: 'Perangkat penyimpanan menyimpan data secara permanen — HDD mekanis vs SSD NAND Flash.'
+    };
+    let g2 = { taruh: {}, pilih: null, sisa: 90, timer: null, selesai: false };
+
+    function g2Render() {
+      const belum = G2_ITEM.filter(it => !g2.taruh[it[0]]);
+      $('#g2Stok').innerHTML = belum.length
+        ? belum.map(it => `<div class="item ${g2.pilih === it[0] ? 'terpilih' : ''}" draggable="true" data-item="${it[0]}">${it[0]}</div>`).join('')
+        : '<span class="kecil">Semua komponen sudah dikelompokkan — tekan <b>Periksa Jawaban</b>.</span>';
+      $$('.bin').forEach(b => {
+        const isi = b.querySelector('.isi');
+        const daftar = G2_ITEM.filter(it => g2.taruh[it[0]] === b.dataset.bin);
+        isi.innerHTML = daftar.map(it => `<div class="item" data-ambil="${it[0]}">${it[0]}</div>`).join('');
+      });
+      $('#g2Skor').textContent = `Terisi ${Object.keys(g2.taruh).length} / 12`;
+      g2Ikat();
+    }
+    function g2Ikat() {
+      $$('#g2Stok .item').forEach(el => {
+        el.ondragstart = e => { g2.pilih = el.dataset.item; e.dataTransfer.setData('text', el.dataset.item); };
+        el.onclick = () => { if (g2.selesai) return; Suara.sfx.klik(); g2.pilih = g2.pilih === el.dataset.item ? null : el.dataset.item; g2Render(); };
+      });
+      $$('[data-ambil]').forEach(el => el.onclick = () => {
+        if (g2.selesai) return;
+        Suara.sfx.tutup(); delete g2.taruh[el.dataset.ambil]; g2Render();
+      });
+      $$('.bin').forEach(b => {
+        b.ondragover = e => { e.preventDefault(); b.classList.add('over'); };
+        b.ondragleave = () => b.classList.remove('over');
+        b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); g2Taruh(e.dataTransfer.getData('text'), b.dataset.bin); };
+        b.onclick = e => { if (g2.pilih && !e.target.dataset.ambil) g2Taruh(g2.pilih, b.dataset.bin); };
+      });
+    }
+    function g2Taruh(item, bin) {
+      if (g2.selesai || !item) return;
+      g2.taruh[item] = bin; g2.pilih = null;
+      Suara.sfx.pasang(); g2Render();
+      if (Object.keys(g2.taruh).length === 12) toast('Semua komponen terisi — periksa jawabanmu!', 'baik');
+    }
+    $('#g2Reset').onclick = () => { Suara.sfx.klik(); g2Mulai(); };
+    $('#g2Periksa').onclick = () => {
+      if (g2.selesai) return;
+      if (Object.keys(g2.taruh).length < 12) { Suara.sfx.salah(); toast('Masih ada komponen yang belum dikelompokkan.', 'buruk'); return; }
+      clearInterval(g2.timer); g2.selesai = true;
+      let benar = 0;
+      G2_ITEM.forEach(([nama, kat]) => {
+        const el = $$(`[data-ambil="${nama}"]`)[0];
+        const ok = g2.taruh[nama] === kat;
+        if (ok) benar++;
+        if (el) el.classList.add(ok ? 'benar' : 'salah');
+      });
+      const bonus = Math.min(15, Math.round(g2.sisa / 6));
+      const nilai = Math.min(100, Math.round(benar / 12 * 100) + (benar === 12 ? bonus : 0));
+      const b = nilai >= 95 ? 3 : nilai >= 80 ? 2 : nilai >= 60 ? 1 : 0;
+      setBintang('g2', b);
+      benar === 12 ? Suara.sfx.menang() : Suara.sfx.salah();
+      infoKartu(benar === 12 ? '✅ Perakitan Logis Sempurna' : '⚠️ Ada Komponen Salah Kelompok',
+        `<p>Benar <b>${benar} dari 12</b> komponen. Sisa waktu <b>${g2.sisa} detik</b>${benar === 12 ? ` → bonus <b>+${bonus}</b>` : ''}.</p>
+         <p>Nilai: <b style="font-size:calc(var(--u)*1.6);color:var(--kuning)">${nilai}</b> → ${bintang(b)}</p>
+         <p class="kecil">${Object.entries(G2_KET).map(([k, v]) => `<b>${k.toUpperCase()}</b> — ${v}`).join('<br>')}</p>`,
+        `<button class="btn kuning" onclick="g2Mulai();document.getElementById('ovInfo').classList.remove('aktif')">↺ Ulangi</button>`);
+    };
+    function g2Mulai() {
+      clearInterval(g2.timer);
+      g2 = { taruh: {}, pilih: null, sisa: 90, timer: null, selesai: false };
+      $('#g2Waktu').textContent = '⏱ 90 dtk';
+      g2Render();
+      g2.timer = setInterval(() => {
+        if (adeganKini !== 'g2') return;
+        g2.sisa--;
+        $('#g2Waktu').textContent = `⏱ ${g2.sisa} dtk`;
+        if (g2.sisa <= 10 && g2.sisa > 0) Suara.sfx.tick();
+        if (g2.sisa <= 0) { clearInterval(g2.timer); $('#g2Periksa').click(); }
+      }, 1000);
+    }
+    SIAP_ADEGAN.g2 = () => { g2Mulai(); setTimeout(() => Suara.vo(VO.g2), 380); callout(null); };
+
+    /* ================================================================ GIM 3
+       Kalkulator kelas IP + tantangan pengalamatan                          */
+    const bin8 = n => n.toString(2).padStart(8, '0');
+    function analisaIp(o) {
+      const a = o[0];
+      let kelas = '-', netOkt = 0, mask = '-', ket = '';
+      if (a === 0) { kelas = 'Khusus'; ket = 'Alamat 0.x.x.x dipakai untuk jaringan "this network", bukan alamat host.'; }
+      else if (a <= 126) { kelas = 'A'; netOkt = 1; mask = '255.0.0.0'; ket = 'Jaringan skala super besar — hingga ±16 juta host.'; }
+      else if (a === 127) { kelas = 'Loopback'; ket = '127.x.x.x dicadangkan untuk loopback (localhost), tidak dipakai di jaringan nyata.'; }
+      else if (a <= 191) { kelas = 'B'; netOkt = 2; mask = '255.255.0.0'; ket = 'Jaringan skala menengah — maksimal 65.534 host.'; }
+      else if (a <= 223) { kelas = 'C'; netOkt = 3; mask = '255.255.255.0'; ket = 'Jaringan skala kecil — maksimal 254 host. Paling umum di lab sekolah & rumah.'; }
+      else if (a <= 239) { kelas = 'D'; ket = 'Kelas D (224–239) dicadangkan untuk multicast.'; }
+      else { kelas = 'E'; ket = 'Kelas E (240–255) dicadangkan untuk keperluan eksperimen.'; }
+      const privat = (a === 10) || (a === 172 && o[1] >= 16 && o[1] <= 31) || (a === 192 && o[1] === 168);
+      const host = netOkt ? Math.pow(2, (4 - netOkt) * 8) - 2 : 0;
+      const netId = netOkt ? o.map((v, i) => i < netOkt ? v : 0).join('.') : '-';
+      const hostId = netOkt ? o.map((v, i) => i < netOkt ? 0 : v).join('.') : '-';
+      return { kelas, netOkt, mask, ket, privat, host, netId, hostId };
+    }
+    function g3Hitung() {
+      const o = $$('#g3 [data-okt]').map(i => Math.max(0, Math.min(255, +i.value || 0)));
+      const r = analisaIp(o);
+      const bits = o.map((v, i) =>
+        `<div class="bitgrp ${i < r.netOkt ? 'net' : 'host'}">${bin8(v).split('').map(b => `<span class="bit">${b}</span>`).join('')}</div>`).join('');
+      $('#g3Hasil').innerHTML = `
+        <div style="display:flex;gap:calc(var(--u)*.8);align-items:center;margin-bottom:calc(var(--u)*.7)">
+          <span class="chip" style="font-size:calc(var(--u)*1.4)">Kelas ${r.kelas}</span>
+          <span class="chip" style="background:${r.privat ? 'rgba(0,217,119,.2)' : 'rgba(255,210,60,.2)'};border-color:${r.privat ? 'var(--hijau)' : 'var(--kuning)'}">
+            ${r.privat ? 'IP Private (lokal)' : 'IP Public (global)'}</span>
+        </div>
+        <div class="bitrow" style="margin-bottom:calc(var(--u)*.5)">${bits}</div>
+        <div class="kecil" style="margin-bottom:calc(var(--u)*.7)">
+          <span style="color:#7ec2ff">■ Network ID (${r.netOkt * 8} bit)</span> &nbsp;
+          <span style="color:var(--kuning)">■ Host ID (${(4 - r.netOkt) * 8} bit)</span>
+        </div>
+        <table style="width:100%;font-size:calc(var(--u)*1.05);line-height:2;border-collapse:collapse">
+          <tr><td style="opacity:.8">Subnet Mask bawaan</td><td class="mono"><b>${r.mask}</b></td></tr>
+          <tr><td style="opacity:.8">Network ID</td><td class="mono"><b style="color:#7ec2ff">${r.netId}</b></td></tr>
+          <tr><td style="opacity:.8">Host ID</td><td class="mono"><b style="color:var(--kuning)">${r.hostId}</b></td></tr>
+          <tr><td style="opacity:.8">Jumlah host maksimal</td><td><b>${r.host ? r.host.toLocaleString('id-ID') : '-'}</b></td></tr>
+        </table>
+        <p class="kecil" style="margin-top:calc(var(--u)*.7);color:#ffe6a8">${r.ket}</p>`;
+    }
+    $$('#g3 [data-okt]').forEach(i => i.oninput = g3Hitung);
+    $$('#g3 [data-ipcontoh]').forEach(b => b.onclick = () => {
+      Suara.sfx.klik();
+      b.dataset.ipcontoh.split('.').forEach((v, i) => $$('#g3 [data-okt]')[i].value = v);
+      g3Hitung();
+    });
+
+    const G3_SOAL = [
+      { t: 'Alamat <b class="mono">172.16.5.4</b> termasuk kelas IPv4 apa?', o: ['Kelas A', 'Kelas B', 'Kelas C', 'Kelas D'], k: 1, a: 'Oktet pertama bernilai 172, berada pada rentang 128–191 sehingga termasuk Kelas B dengan 2 oktet NetID.' },
+      { t: 'Berapa subnet mask bawaan (default) untuk alamat kelas C?', o: ['255.0.0.0', '255.255.0.0', '255.255.255.0', '255.255.255.255'], k: 2, a: 'Kelas C memakai 3 oktet sebagai NetID, sehingga subnet mask bawaannya 255.255.255.0.' },
+      { t: 'Berapa Network ID dari alamat <b class="mono">10.20.30.40</b>?', o: ['10.0.0.0', '10.20.0.0', '10.20.30.0', '0.20.30.40'], k: 0, a: 'Alamat kelas A hanya memakai 1 oktet pertama sebagai NetID, sisanya HostID dinolkan → 10.0.0.0.' },
+      { t: 'Manakah yang termasuk <b>IP Private</b>?', o: ['8.8.8.8', '192.168.10.5', '203.0.113.9', '172.15.0.1'], k: 1, a: 'Rentang private kelas C adalah 192.168.0.0–192.168.255.255. Perhatikan 172.15.0.1 bukan private karena rentangnya 172.16–172.31.' },
+      { t: 'Berapa jumlah host maksimal dalam satu jaringan kelas C?', o: ['128 host', '254 host', '256 host', '65.534 host'], k: 1, a: '1 oktet HostID = 8 bit → 2⁸ = 256, dikurangi alamat network dan broadcast menjadi 254 host.' },
+      { t: 'Berapa panjang total bit alamat <b>IPv6</b>?', o: ['32 bit', '64 bit', '128 bit', '256 bit'], k: 2, a: 'IPv6 memiliki panjang 128 bit yang ditulis dalam 8 kelompok heksadesimal dipisah tanda titik dua.' }
+    ];
+    let g3 = { i: 0, benar: 0, terjawab: false };
+    function g3RenderSoal() {
+      const s = G3_SOAL[g3.i];
+      $('#g3Skor').textContent = `Tantangan ${g3.benar} / ${G3_SOAL.length}`;
+      $('#g3Soal').innerHTML =
+        `<div style="font-weight:800;color:var(--sian);font-size:calc(var(--u)*1.05)">Soal ${g3.i + 1} / ${G3_SOAL.length}</div>
+         <div style="font-size:calc(var(--u)*1.12);line-height:1.5;margin-bottom:calc(var(--u)*.4)">${s.t}</div>` +
+        s.o.map((t, i) => `<button class="opsi" data-g3="${i}"><span class="huruf">${'ABCD'[i]}</span>${t}</button>`).join('');
+      $('#g3Umpan').innerHTML = '';
+      g3.terjawab = false;
+      $$('[data-g3]').forEach(b => b.onclick = () => {
+        if (g3.terjawab) return;
+        g3.terjawab = true;
+        const pilih = +b.dataset.g3, ok = pilih === s.k;
+        $$('[data-g3]').forEach((x, i) => {
+          x.disabled = true;
+          if (i === s.k) x.classList.add('benar');
+          else if (i === pilih) x.classList.add('salah');
+        });
+        if (ok) { g3.benar++; Suara.sfx.benar(); } else Suara.sfx.salah();
+        $('#g3Umpan').innerHTML = `<b style="color:${ok ? 'var(--hijau)' : 'var(--merah)'}">${ok ? '✔ Benar!' : '✘ Kurang tepat.'}</b> ${s.a}`;
+        $('#g3Skor').textContent = `Tantangan ${g3.benar} / ${G3_SOAL.length}`;
+        if (g3.i === G3_SOAL.length - 1) {
+          const b3 = g3.benar >= 6 ? 3 : g3.benar >= 5 ? 2 : g3.benar >= 3 ? 1 : 0;
+          setBintang('g3', b3);
+          setTimeout(() => {
+            if (b3 === 3) Suara.sfx.menang();
+            infoKartu('🌐 Hasil Tantangan Pengalamatan',
+              `<p>Jawaban benar: <b style="font-size:calc(var(--u)*1.6);color:var(--kuning)">${g3.benar} / ${G3_SOAL.length}</b> → ${bintang(b3)}</p>
+               <p class="kecil">Ingat: kelas ditentukan oleh oktet pertama (A: 1–126, B: 128–191, C: 192–223); Subnet Mask-lah yang memisahkan porsi NetID dan HostID.</p>`,
+              `<button class="btn kuning" onclick="g3Mulai();document.getElementById('ovInfo').classList.remove('aktif')">↺ Ulangi</button>`);
+          }, 700);
+        }
+      });
+    }
+    $('#g3Lanjut').onclick = () => {
+      if (!g3.terjawab) { Suara.sfx.salah(); toast('Jawab dulu soalnya.', 'buruk'); return; }
+      Suara.sfx.klik();
+      g3.i = (g3.i + 1) % G3_SOAL.length;
+      g3RenderSoal();
+    };
+    $('#g3Reset').onclick = () => { Suara.sfx.klik(); g3Mulai(); };
+    function g3Mulai() { g3 = { i: 0, benar: 0, terjawab: false }; g3RenderSoal(); g3Hitung(); }
+    SIAP_ADEGAN.g3 = () => { g3Mulai(); setTimeout(() => Suara.vo(VO.g3), 380); callout(null); };
+  </script>
+
+  <script>
+    /* ================================================================ GIM 4
+       Simulasi encapsulation & decapsulation TCP/IP                         */
+    const LAYER = [
+      { k: 'l1', n: 'APPLICATION', p: 'HTTP · FTP · SMTP/IMAP · DNS' },
+      { k: 'l2', n: 'TRANSPORT', p: 'TCP · UDP' },
+      { k: 'l3', n: 'INTERNET', p: 'IP · ICMP · ARP' },
+      { k: 'l4', n: 'NETWORK ACCESS', p: 'Ethernet · Wi-Fi 802.11 · PPP' }
+    ];
+    function g4Stack(el, nomorAwalAtas) {
+      el.innerHTML = LAYER.map((l, i) =>
+        `<div class="layer ${l.k}" data-l="${i}">
+           <span style="font-size:calc(var(--u)*1.5)">${nomorAwalAtas ? i + 1 : i + 1}</span>
+           <div style="display:flex;flex-direction:column;line-height:1.15">
+             <span>${l.n}</span><span class="kecil" style="opacity:.9">${l.p}</span>
+           </div>
+         </div>`).join('');
+    }
+    const G4_LANGKAH = [
+      { sisi: 'k', l: 0, lbl: 'DATA', log: '[APPLICATION] Aplikasi chat menyiapkan pesan "Halo Bu Guru" dan memformatnya lewat protokol HTTP.' },
+      { sisi: 'k', l: 1, lbl: 'SEGMENT', log: '[TRANSPORT] Data dipotong dan diberi header TCP (port asal 51234 → port tujuan 80). Terbentuk SEGMENT. TCP melakukan three-way handshake lebih dulu.' },
+      { sisi: 'k', l: 2, lbl: 'PACKET', log: '[INTERNET] Segment diberi header IP (192.168.1.10 → 192.168.1.20). Terbentuk PACKET, rute ditentukan.' },
+      { sisi: 'k', l: 3, lbl: 'FRAME', log: '[NETWORK ACCESS] Packet dibungkus header & trailer Ethernet berisi MAC Address. Terbentuk FRAME.' },
+      { sisi: 'kabel', l: 3, lbl: '0101…', log: '[MEDIA FISIK] Frame diubah menjadi sinyal listrik (bit 0 dan 1) yang mengalir di dalam kabel UTP.' },
+      { sisi: 't', l: 3, lbl: 'FRAME', log: '[NETWORK ACCESS] Penerima menangkap sinyal, menyusunnya kembali menjadi FRAME, lalu memeriksa MAC Address tujuan.' },
+      { sisi: 't', l: 2, lbl: 'PACKET', log: '[INTERNET] Header Ethernet dilepas. Header IP diperiksa — alamat tujuan cocok, lanjut ke atas.' },
+      { sisi: 't', l: 1, lbl: 'SEGMENT', log: '[TRANSPORT] Header IP dilepas. TCP memeriksa keutuhan segment dan mengurutkannya kembali.' },
+      { sisi: 't', l: 0, lbl: 'DATA', log: '[APPLICATION] Header TCP dilepas. Pesan "Halo Bu Guru" tampil utuh di layar penerima. ✔' }
+    ];
+    let g4Jalan = false;
+    function g4Reset() {
+      g4Stack($('#g4StackKirim'), true);
+      g4Stack($('#g4StackTerima'), true);
+      $('#g4Log').innerHTML = '<span class="ok">C:\\&gt; siap. Tekan "Kirim Pesan" untuk melihat perjalanan data.</span>';
+      $('#g4Tahap').textContent = 'Siap mengirim data';
+      $('#g4Paket').style.display = 'none';
+      $('#g4Kuis').innerHTML = '';
+    }
+    function g4Sorot(sisi, i) {
+      $$('#g4 .layer').forEach(l => l.classList.remove('nyala'));
+      if (sisi === 'kabel') return;
+      const wadah = sisi === 'k' ? '#g4StackKirim' : '#g4StackTerima';
+      const el = $$(`${wadah} .layer`)[i];
+      if (el) el.classList.add('nyala');
+      const p = $('#g4Paket'), r = el.getBoundingClientRect(), rp = panggung.getBoundingClientRect();
+      p.style.display = 'block';
+      p.style.top = (r.top - rp.top + r.height / 2 - p.offsetHeight / 2) + 'px';
+      p.style.left = (sisi === 'k' ? r.right - rp.left + 8 : r.left - rp.left - p.offsetWidth - 8) + 'px';
+    }
+    $('#g4Play').onclick = async () => {
+      if (g4Jalan) return; g4Jalan = true;
+      g4Reset(); Suara.sfx.klik();
+      $('#g4Log').innerHTML = '';
+      for (const s of G4_LANGKAH) {
+        $('#g4Paket').textContent = s.lbl;
+        $('#g4Tahap').textContent = s.sisi === 'kabel' ? '⚡ Transmisi melalui media fisik'
+          : (s.sisi === 'k' ? '⬇ Encapsulation di pengirim' : '⬆ Decapsulation di penerima');
+        if (s.sisi === 'kabel') {
+          const p = $('#g4Paket'), rp = panggung.getBoundingClientRect();
+          p.style.display = 'block';
+          p.style.left = (rp.width * .5 - p.offsetWidth / 2) + 'px';
+          p.style.top = (rp.height * .82) + 'px';
+          Suara.sfx.swish();
+        } else { g4Sorot(s.sisi, s.l); Suara.sfx.pasang(); }
+        $('#g4Log').innerHTML += (s.log.includes('✔') ? `<span class="ok">${s.log}</span>` : s.log) + '\n';
+        $('#g4Log').scrollTop = 1e6;
+        await new Promise(r => setTimeout(r, 1150));
+      }
+      $$('#g4 .layer').forEach(l => l.classList.remove('nyala'));
+      $('#g4Paket').style.display = 'none';
+      $('#g4Tahap').textContent = '✔ Pesan diterima utuh';
+      Suara.sfx.benar();
+      g4Jalan = false;
+    };
+
+    const G4_SOAL = [
+      { t: 'Lapisan mana yang memotong data besar menjadi <b>Segment</b> dan mengatur flow control?', o: ['Application Layer', 'Transport Layer', 'Internet Layer', 'Network Access Layer'], k: 1, a: 'Transport Layer memecah aliran data menjadi Segment, mengatur flow control, dan mendeteksi error.' },
+      { t: 'Protokol <b>DNS</b> yang menerjemahkan google.com menjadi alamat IP bekerja di lapisan…', o: ['Application Layer', 'Transport Layer', 'Internet Layer', 'Network Access Layer'], k: 0, a: 'DNS, HTTP/HTTPS, FTP, dan SMTP/IMAP semuanya berada di Application Layer.' },
+      { t: 'Protokol mana yang bersifat <b>connectionless</b>, sangat cepat, dan cocok untuk live streaming?', o: ['TCP', 'UDP', 'ICMP', 'ARP'], k: 1, a: 'UDP menembakkan paket tanpa handshake dan tanpa konfirmasi — ringan dan cepat, ideal untuk streaming, VoIP, dan game online.' },
+      { t: 'Pada lapisan mana paket diubah menjadi <b>Frame</b> berisi MAC Address?', o: ['Application Layer', 'Transport Layer', 'Internet Layer', 'Network Access Layer'], k: 3, a: 'Network Access Layer berinteraksi dengan media fisik dan mengemas paket IP menjadi frame Ethernet.' }
+    ];
+    let g4q = { i: 0, benar: 0, aktif: false };
+    $('#g4Mulai').onclick = () => { Suara.sfx.klik(); g4q = { i: 0, benar: 0, aktif: true }; g4Soal(); };
+    function g4Soal() {
+      const s = G4_SOAL[g4q.i];
+      $('#g4Skor').textContent = `Kuis lapisan ${g4q.benar} / ${G4_SOAL.length}`;
+      $('#g4Kuis').innerHTML =
+        `<div style="font-weight:800;color:var(--kuning);margin-bottom:calc(var(--u)*.3)">Soal ${g4q.i + 1}/${G4_SOAL.length}</div>
+         <div style="font-size:calc(var(--u)*1.05);margin-bottom:calc(var(--u)*.4)">${s.t}</div>
+         <div style="display:flex;flex-wrap:wrap;gap:calc(var(--u)*.35)">` +
+        s.o.map((t, i) => `<button class="btn abu" style="font-size:calc(var(--u)*.95);padding:calc(var(--u)*.4) calc(var(--u)*.7)" data-g4="${i}">${'ABCD'[i]}. ${t}</button>`).join('') + '</div>';
+      $$('[data-g4]').forEach(b => b.onclick = () => {
+        const ok = +b.dataset.g4 === s.k;
+        if (ok) { g4q.benar++; Suara.sfx.benar(); } else Suara.sfx.salah();
+        $('#g4Kuis').innerHTML = `<b style="color:${ok ? 'var(--hijau)' : 'var(--merah)'}">${ok ? '✔ Benar!' : '✘ Kurang tepat.'}</b> <span class="kecil">${s.a}</span>`;
+        $('#g4Skor').textContent = `Kuis lapisan ${g4q.benar} / ${G4_SOAL.length}`;
+        setTimeout(() => {
+          g4q.i++;
+          if (g4q.i < G4_SOAL.length) g4Soal();
+          else {
+            const b3 = g4q.benar === 4 ? 3 : g4q.benar === 3 ? 2 : g4q.benar >= 2 ? 1 : 0;
+            setBintang('g4', b3);
+            if (b3 === 3) Suara.sfx.menang();
+            infoKartu('📦 Hasil Kuis Lapisan TCP/IP',
+              `<p>Benar <b style="font-size:calc(var(--u)*1.6);color:var(--kuning)">${g4q.benar} / 4</b> → ${bintang(b3)}</p>
+               <p class="kecil">Urutan dari atas ke bawah: Application → Transport → Internet → Network Access.
+                  Data dibungkus turun (encapsulation) di pengirim, lalu dibongkar naik (decapsulation) di penerima.</p>`,
+              `<button class="btn kuning" onclick="document.getElementById('g4Mulai').click();document.getElementById('ovInfo').classList.remove('aktif')">↺ Ulangi Kuis</button>`);
+            $('#g4Kuis').innerHTML = '';
+          }
+        }, 1900);
+      });
+    }
+    SIAP_ADEGAN.g4 = () => { g4Reset(); setTimeout(() => Suara.vo(VO.g4), 380); callout(null); };
+
+    /* ================================================================ GIM 5
+       Troubleshooting challenge — perbaiki sampai ping berbalas             */
+    const G5_POOL = [
+      {
+        target: 'linkA', judul: 'Kabel PC-A ↔ Switch',
+        gejala: 'Lampu indikator NIC PC-A mati total dan kabel terlihat menggantung di belakang meja.',
+        opsi: ['Ganti alamat IP PC-A menjadi IP Public', 'Pasang kembali konektor RJ-45 hingga terdengar bunyi klik pada port NIC dan port Switch', 'Matikan firewall Windows pada PC-A'],
+        k: 1, alasan: 'Lapisan fisik selalu diperiksa lebih dulu. Konektor RJ-45 yang longgar membuat link mati sehingga paket tidak pernah keluar dari NIC.'
+      },
+      {
+        target: 'pcB', judul: 'Konfigurasi IP PC-B',
+        gejala: 'PC-B memakai alamat 192.168.<b>2</b>.20 sedangkan PC-A memakai 192.168.<b>1</b>.10 dengan mask 255.255.255.0.',
+        opsi: ['Ubah IP PC-B menjadi 192.168.1.20 agar NetID sama dengan PC-A', 'Ubah subnet mask PC-B menjadi 255.255.255.255', 'Ganti kabel PC-B dengan kabel crossover'],
+        k: 0, alasan: 'Dua host dalam satu LAN tanpa router wajib memiliki Network ID yang sama persis. Dengan mask 255.255.255.0, oktet ketiga masih bagian NetID sehingga 192.168.2.20 berada di jaringan yang berbeda.'
+      },
+      {
+        target: 'linkB', judul: 'Jenis kabel PC-B ↔ Switch',
+        gejala: 'Kabel terpasang rapat, namun tester menunjukkan urutan ujung A 568A dan ujung B 568B.',
+        opsi: ['Biarkan saja, kedua standar sama fungsinya', 'Ganti dengan kabel straight-through (kedua ujung 568B) karena PC dan Switch adalah perangkat berbeda jenis', 'Ganti dengan kabel fiber optic'],
+        k: 1, alasan: 'Kabel dengan ujung 568A dan 568B adalah crossover, yang diperuntukkan bagi perangkat sejenis. PC ke Switch adalah perangkat berbeda jenis sehingga wajib memakai straight-through.'
+      },
+      {
+        target: 'pcA', judul: 'Subnet mask PC-A',
+        gejala: 'Subnet mask PC-A tertulis 255.255.255.255 sehingga seluruh 32 bit dianggap Network ID.',
+        opsi: ['Ubah subnet mask menjadi 255.255.255.0 sesuai kelas C', 'Ubah IP PC-A menjadi 10.0.0.1', 'Nonaktifkan kartu jaringan lalu aktifkan lagi'],
+        k: 0, alasan: 'Subnet mask 255.255.255.255 tidak menyisakan bit untuk HostID, sehingga PC menganggap tidak ada host lain di jaringannya. Kelas C memakai mask bawaan 255.255.255.0.'
+      },
+      {
+        target: 'switch', judul: 'Perangkat Switch',
+        gejala: 'Seluruh lampu port Switch padam dan kipasnya tidak berputar.',
+        opsi: ['Ganti seluruh kabel UTP di lab', 'Periksa adaptor daya Switch dan pastikan tersambung ke stopkontak yang berfungsi', 'Ubah IP semua PC menjadi IP Public'],
+        k: 1, alasan: 'Switch adalah intermediary device. Tanpa daya, tidak ada frame yang bisa diteruskan berdasarkan tabel MAC Address sehingga seluruh komunikasi LAN berhenti.'
+      }
+    ];
+    let g5 = { rusak: [], beres: {}, salahPilih: 0, ipB: '192.168.1.20', maskA: '255.255.255.0' };
+
+    function g5Gambar() {
+      const rusakDi = t => g5.rusak.some(f => f.target === t && !g5.beres[t]);
+      const ipB = rusakDi('pcB') ? '192.168.2.20' : '192.168.1.20';
+      const maskA = rusakDi('pcA') ? '255.255.255.255' : '255.255.255.0';
+      $('#g5Skema').innerHTML = `
+        <div class="link ${rusakDi('linkA') ? 'putus' : ''}" style="left:18%;top:41%;width:26%"></div>
+        <div class="link ${rusakDi('linkB') ? 'salah' : ''}" style="left:56%;top:41%;width:26%"></div>
+        <div class="node ${g5.rusak.some(f => f.target === 'pcA') ? (g5.beres.pcA ? 'beres' : 'rusak') : ''}"
+             data-t="pcA" style="left:12%;top:30%">
+          <div class="kotak">💻</div><div class="lbl">PC-A (Klien)</div>
+          <div class="ip">192.168.1.10</div><div class="ip">mask ${maskA}</div>
+        </div>
+        <div class="node ${g5.rusak.some(f => f.target === 'switch') ? (g5.beres.switch ? 'beres' : 'rusak') : ''}"
+             data-t="switch" style="left:50%;top:30%">
+          <div class="kotak">🔀</div><div class="lbl">Switch 24 Port</div><div class="ip">Layer 2 · MAC</div>
+        </div>
+        <div class="node ${g5.rusak.some(f => f.target === 'pcB') ? (g5.beres.pcB ? 'beres' : 'rusak') : ''}"
+             data-t="pcB" style="left:88%;top:30%">
+          <div class="kotak">🖥️</div><div class="lbl">PC-B (Tujuan)</div>
+          <div class="ip">${ipB}</div><div class="ip">mask 255.255.255.0</div>
+        </div>
+        <button class="hot" data-t="linkA" style="left:18%;top:36%;width:26%;height:10%"><span class="tip">Periksa kabel PC-A ↔ Switch</span></button>
+        <button class="hot" data-t="linkB" style="left:56%;top:36%;width:26%;height:10%"><span class="tip">Periksa kabel Switch ↔ PC-B</span></button>
+        <div class="kecil" style="position:absolute;left:0;right:0;bottom:2%;text-align:center">
+          Ketuk perangkat atau kabel yang mencurigakan untuk membuka opsi perbaikan.
+          <br>Gangguan ditandai bingkai merah / garis putus-putus.
+        </div>`;
+      $$('#g5Skema [data-t]').forEach(el => el.onclick = () => g5Klik(el.dataset.t));
+      const sisa = g5.rusak.filter(f => !g5.beres[f.target]).length;
+      $('#g5Gangguan').textContent = `Gangguan tersisa: ${sisa}`;
+      $('#g5Petunjuk').innerHTML = sisa
+        ? `Masih ada <b>${sisa}</b> gangguan. Jalankan <b>ping</b> untuk melihat gejalanya, lalu perbaiki satu per satu.`
+        : `<b style="color:var(--hijau)">Semua gangguan teratasi.</b> Jalankan ping untuk memverifikasi koneksi.`;
+    }
+    function g5Klik(t) {
+      const f = g5.rusak.find(x => x.target === t);
+      Suara.sfx.klik();
+      if (!f) { toast('Komponen ini normal — tidak ada gangguan di sini.', ''); return; }
+      if (g5.beres[t]) { toast('Bagian ini sudah kamu perbaiki.', 'baik'); return; }
+      const i = g5.rusak.indexOf(f);
+      Suara.sfx.popup();
+      infoKartu(`🔧 ${f.judul}`,
+        `<p><b>Gejala:</b> ${f.gejala}</p><p>Pilih tindakan perbaikan yang paling tepat:</p>
+         <div style="display:flex;flex-direction:column;gap:calc(var(--u)*.45);margin-top:calc(var(--u)*.5)">` +
+        f.opsi.map((o, j) => `<button class="opsi" onclick="g5Perbaiki(${i},${j})"><span class="huruf">${'ABC'[j]}</span>${o}</button>`).join('') + '</div>');
+    }
+    function g5Perbaiki(i, j) {
+      const f = g5.rusak[i];
+      $('#ovInfo').classList.remove('aktif');
+      if (j === f.k) {
+        g5.beres[f.target] = true;
+        Suara.sfx.benar();
+        toast('✔ Gangguan teratasi!', 'baik');
+        g5Log(`<span class="ok">[FIX] ${f.judul}: ${f.opsi[f.k]}</span>`);
+        g5Log(`<span class="kecil">      ${f.alasan}</span>`);
+      } else {
+        g5.salahPilih++;
+        Suara.sfx.salah();
+        toast('✘ Tindakan itu tidak menyelesaikan masalah.', 'buruk');
+        g5Log(`<span class="err">[GAGAL] "${f.opsi[j]}" tidak memperbaiki ${f.judul}.</span>`);
+      }
+      g5Gambar();
+    }
+    function g5Log(html) { $('#g5Term').innerHTML += html + '\n'; $('#g5Term').scrollTop = 1e6; }
+    $('#g5Ping').onclick = async () => {
+      const sisa = g5.rusak.filter(f => !g5.beres[f.target]);
+      g5Log('C:\\&gt; ping 192.168.1.20');
+      g5Log('');
+      if (sisa.length) {
+        Suara.sfx.alarm();
+        g5Log('Pinging 192.168.1.20 with 32 bytes of data:');
+        for (let i = 0; i < 4; i++) { await new Promise(r => setTimeout(r, 320)); g5Log('<span class="err">Request timed out.</span>'); }
+        g5Log(`<span class="err">Ping statistics: Sent = 4, Received = 0, Lost = 4 (100% loss)</span>`);
+        g5Log(`<span class="kecil">Diagnosa: ${sisa[0].gejala.replace(/<[^>]+>/g, '')}</span>`);
+        g5Log('');
+      } else {
+        Suara.sfx.ping();
+        g5Log('Pinging 192.168.1.20 with 32 bytes of data:');
+        for (let i = 0; i < 4; i++) {
+          await new Promise(r => setTimeout(r, 280));
+          Suara.sfx.ping();
+          g5Log(`<span class="ok">Reply from 192.168.1.20: bytes=32 time=${1 + i}ms TTL=128</span>`);
+        }
+        g5Log('<span class="ok">Ping statistics: Sent = 4, Received = 4, Lost = 0 (0% loss)</span>');
+        g5Log('');
+        const b = g5.salahPilih === 0 ? 3 : g5.salahPilih <= 2 ? 2 : 1;
+        setBintang('g5', b);
+        Suara.sfx.menang();
+        infoKartu('🎉 Jaringan Pulih — Reply from 192.168.1.20',
+          `<p>Kamu memperbaiki <b>${g5.rusak.length} gangguan</b> dengan <b>${g5.salahPilih}</b> tindakan keliru → ${bintang(b)}</p>
+           <p class="kecil">Alur diagnosis yang benar: periksa lapisan fisik (kabel, daya, lampu indikator) → lapisan logis
+              (IP Address, subnet mask, NetID) → lapisan aplikasi (firewall, service). Verifikasi selalu dengan perintah
+              <span class="mono">ping</span> hingga muncul <span class="mono">Reply from…</span></p>`,
+          `<button class="btn kuning" onclick="g5Mulai();document.getElementById('ovInfo').classList.remove('aktif')">↺ Kasus Baru</button>`);
+      }
+    };
+    $('#g5Reset').onclick = () => { Suara.sfx.klik(); g5Mulai(); };
+    function g5Mulai() {
+      g5 = { rusak: acak(G5_POOL.slice()).slice(0, 3), beres: {}, salahPilih: 0 };
+      $('#g5Term').innerHTML = '<span class="kecil">Microsoft Windows [Version 10.0.22631]\nLab Jaringan SMK — sesi diagnosa dimulai.</span>\n';
+      g5Gambar();
+    }
+    SIAP_ADEGAN.g5 = () => { g5Mulai(); setTimeout(() => Suara.vo(VO.g5), 380); callout(null); };
+
+    /* ================================================================ KUIS
+       Uji kompetensi 10 soal — cakupan Sub-bab A sampai E                   */
+    const BANK = [
+      {
+        t: 'Arsitektur alur kerja komputer mengalir dari pengguna hingga perangkat fisik. Urutan yang benar adalah ….',
+        o: ['User → Kernel → Aplikasi → UI → Hardware', 'User → Aplikasi → User Interface → Kernel → Hardware',
+          'User → Hardware → Kernel → Aplikasi → UI', 'Aplikasi → User → UI → Hardware → Kernel'],
+        k: 1, a: 'Sesuai bagan alur kerja sistem operasi: User → Aplikasi → User Interface (UI) → Kernel → Perangkat Keras. Kernel adalah lapisan terdalam yang berinteraksi langsung dengan hardware.'
+      },
+      {
+        t: 'Langkah pertama pada mekanisme booting komputer adalah ….',
+        o: ['Loading Kernel ke RAM', 'Menampilkan User Interface', 'POST — pengecekan hardware oleh BIOS/UEFI', 'Mencari Boot Loader'],
+        k: 2, a: 'Urutan booting: (1) POST oleh BIOS/UEFI untuk mengecek hardware, (2) mencari Boot Loader, (3) loading kernel ke RAM, (4) menampilkan UI.'
+      },
+      {
+        t: 'Bagian CPU yang bertugas melakukan perhitungan matematika dan operasi logika disebut ….',
+        o: ['CU (Control Unit)', 'ALU (Arithmetic Logic Unit)', 'Cache Memory', 'Chipset Motherboard'],
+        k: 1, a: 'ALU (Arithmetic Logic Unit) menangani perhitungan matematika dan logika, sedangkan CU (Control Unit) mengatur lalu lintas data.'
+      },
+      {
+        t: 'Media penyimpanan yang sepenuhnya digital, memakai chip NAND Flash tanpa komponen bergerak, tahan guncangan, dan berkecepatan 500–7000+ MB/s adalah ….',
+        o: ['HDD (Hard Disk Drive)', 'RAM DDR5', 'SSD (Solid State Drive)', 'Optical Disc Drive'],
+        k: 2, a: 'SSD memakai chip memori flash/NAND Flash tanpa piringan mekanis, sehingga jauh lebih cepat, hening, tahan guncangan, dan hemat daya dibanding HDD.'
+      },
+      {
+        t: 'Perangkat perantara yang menyalurkan paket data secara terarah dalam satu LAN berdasarkan tabel alamat fisik MAC Address adalah ….',
+        o: ['Router', 'Switch', 'Access Point', 'Modem'],
+        k: 1, a: 'Switch bekerja pada alamat fisik (MAC Address) untuk satu lingkup LAN. Router bekerja pada alamat logis (IP Address) untuk menghubungkan jaringan dengan segmen subnet berbeda.'
+      },
+      {
+        t: 'Menurut standar TIA/EIA-568B, warna kabel pada <b>pin nomor 1</b> adalah ….',
+        o: ['Putih Hijau', 'Oranye', 'Putih Oranye', 'Biru'],
+        k: 2, a: 'Urutan 568B pin 1–8: Putih Oranye, Oranye, Putih Hijau, Biru, Putih Biru, Hijau, Putih Cokelat, Cokelat.'
+      },
+      {
+        t: 'Untuk menghubungkan dua perangkat <b>sejenis</b> seperti Switch ke Switch, jenis kabel yang tepat adalah ….',
+        o: ['Straight-through (kedua ujung 568B)', 'Crossover (ujung A 568A, ujung B 568B)', 'Rollover console', 'Coaxial RG-45'],
+        k: 1, a: 'Kabel Crossover menyilangkan jalur kirim dan terima: ujung A memakai standar 568A dan ujung B memakai 568B. Dipakai untuk perangkat sejenis (PC↔PC, Switch↔Switch, Router↔Router).'
+      },
+      {
+        t: 'Alamat <b class="mono">192.168.1.10</b> termasuk kelas C. Subnet mask bawaan serta pembagian porsinya adalah ….',
+        o: ['255.0.0.0 — 1 oktet NetID, 3 oktet HostID', '255.255.0.0 — 2 oktet NetID, 2 oktet HostID',
+          '255.255.255.0 — 3 oktet NetID, 1 oktet HostID', '255.255.255.255 — seluruh bit NetID'],
+        k: 2, a: 'Kelas C (oktet pertama 192–223) memakai 3 oktet pertama sebagai Network ID dan 1 oktet terakhir sebagai Host ID, dengan subnet mask bawaan 255.255.255.0 serta maksimal 254 host.'
+      },
+      {
+        t: 'Protokol Transport Layer yang bersifat <i>connectionless</i>, sangat cepat dan ringan, serta ideal untuk live streaming dan game online adalah ….',
+        o: ['TCP', 'UDP', 'HTTP', 'ICMP'],
+        k: 1, a: 'UDP (User Datagram Protocol) mengirim paket tanpa handshake dan tanpa konfirmasi, sehingga sangat cepat. TCP sebaliknya bersifat connection-oriented, akurat, dan melakukan retransmit.'
+      },
+      {
+        t: 'Protokol <b>DNS</b> yang menerjemahkan nama domain seperti google.com menjadi alamat IP numerik bekerja pada lapisan ….',
+        o: ['Application Layer', 'Transport Layer', 'Internet Layer', 'Network Access Layer'],
+        k: 0, a: 'DNS berada di Application Layer bersama HTTP/HTTPS, FTP, dan SMTP/IMAP — lapisan teratas yang bersentuhan langsung dengan aplikasi pengguna.'
+      }
+    ];
+
+    let kuis = { i: 0, jawab: Array(10).fill(null), sisa: 600, timer: null, selesai: false };
+
+    function fmtWaktu(d) { return String(Math.floor(d / 60)).padStart(2, '0') + ':' + String(d % 60).padStart(2, '0'); }
+
+    function kuisRender() {
+      const s = BANK[kuis.i];
+      $('#kuisNo').textContent = 'SOAL ' + String(kuis.i + 1).padStart(2, '0');
+      $('#kuisTanya').innerHTML = s.t;
+      const j = kuis.jawab[kuis.i];
+      $('#kuisOpsi').innerHTML = s.o.map((t, i) =>
+        `<button class="opsi" data-k="${i}"><span class="huruf">${'ABCD'[i]}</span><span>${t}</span></button>`).join('');
+      $$('#kuisOpsi .opsi').forEach((b, i) => {
+        if (j !== null) {
+          b.disabled = true;
+          if (i === s.k) b.classList.add('benar');
+          else if (i === j) b.classList.add('salah');
+        } else b.onclick = () => kuisJawab(i);
+      });
+      $('#kuisPenjelasan').innerHTML = j === null
+        ? 'Pilih salah satu jawaban untuk melihat alasannya di sini.'
+        : `<b style="color:${j === s.k ? 'var(--hijau)' : 'var(--merah)'};font-size:calc(var(--u)*1.2)">${j === s.k ? '✔ BENAR!' : '✘ BELUM TEPAT'}</b>
+           <p style="margin-top:calc(var(--u)*.5);line-height:1.6">${s.a}</p>
+           ${j === s.k ? '' : `<p style="margin-top:calc(var(--u)*.5)">Jawaban yang benar: <b>${'ABCD'[s.k]}. ${s.o[s.k]}</b></p>`}`;
+      kuisDots();
+    }
+    function kuisDots() {
+      $('#kuisDots').innerHTML = BANK.map((s, i) => {
+        const j = kuis.jawab[i];
+        const kls = i === kuis.i ? 'aktif' : j === null ? '' : (j === s.k ? 'benar' : 'salah');
+        return `<button class="dot ${kls}" data-dot="${i}">${i + 1}</button>`;
+      }).join('');
+      $$('[data-dot]').forEach(b => b.onclick = () => { Suara.sfx.klik(); kuis.i = +b.dataset.dot; kuisRender(); });
+      const terjawab = kuis.jawab.filter(x => x !== null).length;
+      const skor = kuis.jawab.reduce((s, j, i) => s + (j === BANK[i].k ? 10 : 0), 0);
+      $('#kuisProgres').textContent = `PROGRES ${terjawab} / 10`;
+      $('#infoSkor').textContent = skor;
+    }
+    function kuisJawab(i) {
+      if (kuis.jawab[kuis.i] !== null || kuis.selesai) return;
+      kuis.jawab[kuis.i] = i;
+      const benar = i === BANK[kuis.i].k;
+      benar ? Suara.sfx.benar() : Suara.sfx.salah();
+      kuisRender();
+      if (kuis.jawab.every(x => x !== null)) {
+        toast('Semua soal terjawab — tekan Selesaikan Evaluasi.', 'baik');
+      } else setTimeout(() => {
+        const berikut = kuis.jawab.findIndex((x, n) => x === null && n > kuis.i);
+        kuis.i = berikut >= 0 ? berikut : kuis.jawab.findIndex(x => x === null);
+        kuisRender();
+      }, 2600);
+    }
+    $('#kuisSelesai').onclick = () => kuisAkhiri(false);
+    function kuisAkhiri(waktuHabis) {
+      if (kuis.selesai) return;
+      const terjawab = kuis.jawab.filter(x => x !== null).length;
+      if (!waktuHabis && terjawab < 10) {
+        Suara.sfx.salah();
+        infoKartu('⚠️ Masih Ada Soal Kosong',
+          `<p>Kamu baru menjawab <b>${terjawab} dari 10</b> soal. Soal yang dikosongkan dihitung salah.</p><p>Tetap selesaikan evaluasi sekarang?</p>`,
+          `<button class="btn merah" onclick="kuisPaksa()">Ya, selesaikan</button>`);
+        return;
+      }
+      kuisPaksa();
+    }
+    function kuisPaksa() {
+      $('#ovInfo').classList.remove('aktif');
+      clearInterval(kuis.timer);
+      kuis.selesai = true;
+      const skor = kuis.jawab.reduce((s, j, i) => s + (j === BANK[i].k ? 10 : 0), 0);
+      progres.kuis = { skor, tanggal: new Date().toISOString() };
+      simpan();
+      keAdegan('s6');
+      hasilRender(skor);
+    }
+    SIAP_ADEGAN.s4 = () => {
+      kuis = { i: 0, jawab: Array(10).fill(null), sisa: 600, timer: null, selesai: false };
+      $('#kuisWaktu').textContent = '⏱ 10:00';
+      $('#infoWaktu').textContent = '10:00';
+      kuisRender();
+      clearInterval(kuis.timer);
+      kuis.timer = setInterval(() => {
+        if (adeganKini !== 's4' || kuis.selesai) return;
+        kuis.sisa--;
+        $('#kuisWaktu').textContent = '⏱ ' + fmtWaktu(kuis.sisa);
+        $('#infoWaktu').textContent = fmtWaktu(kuis.sisa);
+        if (kuis.sisa <= 10 && kuis.sisa > 0) Suara.sfx.tick();
+        if (kuis.sisa <= 0) { clearInterval(kuis.timer); toast('Waktu habis!', 'buruk'); kuisAkhiri(true); }
+      }, 1000);
+    };
+
+    /* ============================================================ SERTIFIKAT */
+    let namaSiswa = localStorage.getItem('netdigilearn_nama') || '';
+    function hasilRender(skor) {
+      const lulus = skor >= 70;
+      const benar = skor / 10;
+      $('#hasilRingkas').innerHTML = `
+        <div class="tengah">
+          <div style="font-size:calc(var(--u)*1.3);opacity:.85">SKOR AKHIR</div>
+          <div style="font-size:calc(var(--u)*6);font-weight:900;line-height:1;color:${lulus ? 'var(--hijau)' : 'var(--merah)'}">${skor}</div>
+          <div class="chip" style="margin-top:calc(var(--u)*.5);display:inline-block;border-color:${lulus ? 'var(--hijau)' : 'var(--merah)'}">
+            ${lulus ? '✔ KOMPETEN' : '✘ BELUM KOMPETEN'}</div>
+        </div>
+        <p class="kecil" style="margin-top:calc(var(--u)*.8);line-height:1.7">
+          Benar <b>${benar} dari 10</b> soal · target kelulusan <b>skor 70</b>.<br>
+          Bintang lab simulasi: <b>${totalBintang()} / 15</b>.
+        </p>
+        <div style="margin-top:calc(var(--u)*.6)">
+          <label class="kecil">Nama pada sertifikat</label>
+          <input id="inpNama" value="${namaSiswa.replace(/"/g, '&quot;')}" placeholder="Tulis namamu"
+            style="width:100%;margin-top:calc(var(--u)*.3);padding:calc(var(--u)*.5);border-radius:calc(var(--u)*.45);
+                   border:2px solid rgba(58,215,255,.6);background:#041d33;color:#fff;font-family:var(--font);font-size:calc(var(--u)*1.1)">
+        </div>
+        <div class="kecil" style="margin-top:calc(var(--u)*.7);line-height:1.65">
+          ${lulus ? 'Sertifikat di samping dapat kamu unduh sebagai berkas PNG.'
+          : 'Sertifikat baru terbit bila skor mencapai 70. Buka kembali materi Sub-bab A–E lalu ulangi evaluasi.'}
+        </div>`;
+      $('#inpNama').oninput = e => {
+        namaSiswa = e.target.value;
+        localStorage.setItem('netdigilearn_nama', namaSiswa);
+        gambarSertifikat(skor, lulus);
+      };
+      $('#btnUnduhSertifikat').disabled = !lulus;
+      gambarSertifikat(skor, lulus);
+      Suara.stopVo();
+      setTimeout(() => Suara.vo(lulus ? VO.lulus : VO.gagal), 400);
+      lulus ? Suara.sfx.menang() : Suara.sfx.alarm();
+    }
+    function gambarSertifikat(skor, lulus) {
+      const c = $('#kanvasSertifikat'), x = c.getContext('2d'), W = c.width, H = c.height;
+      const g = x.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#062440'); g.addColorStop(1, '#0a2c4d');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.strokeStyle = lulus ? '#00d977' : '#e03a32'; x.lineWidth = 14; x.strokeRect(28, 28, W - 56, H - 56);
+      x.strokeStyle = '#3ad7ff'; x.lineWidth = 3; x.strokeRect(52, 52, W - 104, H - 104);
+      x.globalAlpha = .12; x.strokeStyle = '#3ad7ff'; x.lineWidth = 2;
+      for (let i = 0; i < 26; i++) { x.beginPath(); x.moveTo(60, 90 + i * 32); x.lineTo(W - 60, 90 + i * 32); x.stroke(); }
+      x.globalAlpha = 1;
+      x.textAlign = 'center'; x.fillStyle = '#3ad7ff';
+      x.font = 'bold 34px "Segoe UI",sans-serif';
+      x.fillText('SMK — FASE E · PROGRAM KEAHLIAN TJKT', W / 2, 140);
+      x.fillStyle = '#fff'; x.font = 'bold 74px "Segoe UI",sans-serif';
+      x.fillText('SERTIFIKAT KOMPETENSI', W / 2, 232);
+      x.fillStyle = '#ffd23c'; x.font = 'bold 40px "Segoe UI",sans-serif';
+      x.fillText('TEKNOLOGI JARINGAN KOMPUTER', W / 2, 296);
+      x.fillStyle = '#cfe6f7'; x.font = '28px "Segoe UI",sans-serif';
+      x.fillText('Diberikan kepada', W / 2, 388);
+      x.fillStyle = '#fff'; x.font = 'bold 66px "Segoe UI",sans-serif';
+      x.fillText(namaSiswa.trim() || '( tulis namamu )', W / 2, 470);
+      x.strokeStyle = '#3ad7ff'; x.lineWidth = 3;
+      x.beginPath(); x.moveTo(W / 2 - 400, 496); x.lineTo(W / 2 + 400, 496); x.stroke();
+      x.fillStyle = '#cfe6f7'; x.font = '26px "Segoe UI",sans-serif';
+      const baris = [
+        'atas keberhasilannya menyelesaikan modul pembelajaran interaktif Net-DigiLearn',
+        'meliputi Sistem Operasi, Perangkat Keras, Instalasi Jaringan & Pengabelan,',
+        'Alamat IP (IPv4 & IPv6), serta Arsitektur Protokol TCP/IP'
+      ];
+      baris.forEach((t, i) => x.fillText(t, W / 2, 550 + i * 38));
+      x.fillStyle = lulus ? '#00d977' : '#e03a32';
+      x.font = 'bold 120px "Segoe UI",sans-serif';
+      x.fillText(String(skor), W / 2, 770);
+      x.fillStyle = '#ffd23c'; x.font = 'bold 32px "Segoe UI",sans-serif';
+      x.fillText(lulus ? 'DINYATAKAN KOMPETEN' : 'BELUM MENCAPAI TARGET (KKM 70)', W / 2, 822);
+      x.fillStyle = '#9fc4dd'; x.font = '22px "Segoe UI",sans-serif';
+      const tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      x.fillText(`Bintang Lab Simulasi: ${totalBintang()} / 15   ·   Diterbitkan ${tgl}`, W / 2, 876);
+      x.fillText('Net-DigiLearn — Media Interaktif Administrasi dan Infrastruktur Jaringan', W / 2, 912);
+    }
+    $('#btnUnduhSertifikat').onclick = () => {
+      if (!namaSiswa.trim()) { Suara.sfx.salah(); toast('Isi dulu namamu pada kolom di sebelah kiri.', 'buruk'); return; }
+      Suara.sfx.klik();
+      const a = document.createElement('a');
+      a.download = `Sertifikat_TJK_${namaSiswa.trim().replace(/\s+/g, '_')}.png`;
+      a.href = $('#kanvasSertifikat').toDataURL('image/png');
+      a.click();
+      toast('Sertifikat diunduh.', 'baik');
+    };
+
+    /* ============================================================ NAVIGASI */
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-aksi]');
+      if (!b) return;
+      const a = b.dataset.aksi;
+      Suara.init(); Suara.sfx.klik();
+      if (a === 'mulai') { bgmMulai(); keAdegan('s1'); return; }
+      if (a === 'set') { $('#ovSet').classList.add('aktif'); return; }
+      if (a === 'alur') {
+        infoKartu('🗺️ Alur Navigasi Aplikasi',
+          `<img src="assets/alur_navigasi.jpg" alt="Diagram alur navigasi" style="width:100%;border-radius:calc(var(--u)*.6);background:#fff">
+           <p class="kecil" style="margin-top:calc(var(--u)*.6)">Diagram alur interaksi sesuai bagian C storyboard TI_PPLG_3.</p>`);
+        return;
+      }
+      if (a.startsWith('m_')) { bukaMateri(a); return; }
+      keAdegan(a);
+    });
+    document.addEventListener('mouseover', e => {
+      if (e.target.closest('.hot,.btn,.kartu-gim,.dot,.opsi')) Suara.sfx.hover();
+    });
+
+    /* =========================================================== PENGATURAN */
+    $('#setBgm').oninput = e => Suara.setBgm(+e.target.value);
+    $('#setSfx').oninput = e => Suara.setSfx(+e.target.value);
+    $('#setVo').onchange = e => Suara.setVo(e.target.checked);
+    $('#setAudio').onchange = e => Suara.setAktif(e.target.checked);
+    $('#setCallout').onchange = e => { calloutAktif = e.target.checked; callout(CALLOUT[adeganKini]); };
+    $('#setTutup').onclick = () => { Suara.sfx.tutup(); $('#ovSet').classList.remove('aktif'); };
+    $('#ovSet').addEventListener('click', e => { if (e.target.id === 'ovSet') $('#ovSet').classList.remove('aktif'); });
+    $('#setHapus').onclick = () => {
+      localStorage.removeItem(KUNCI);
+      progres = JSON.parse(JSON.stringify(kosong));
+      Suara.sfx.tutup();
+      toast('Progres belajar dan skor telah dihapus.', 'buruk');
+    };
+
+    addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        $('#ovInfo').classList.remove('aktif');
+        $('#ovSet').classList.remove('aktif');
+      }
+    });
+
+    /* ================================================================= BOOT */
+    if ('speechSynthesis' in window) speechSynthesis.getVoices();
+    keAdegan('s0');
+    const bukaAudio = () => { Suara.init(); bgmMulai(); Suara.vo(VO.s0); removeEventListener('pointerdown', bukaAudio); };
+    addEventListener('pointerdown', bukaAudio, { once: true });
+  </script>
+</body>
+
+</html>
